@@ -5,15 +5,15 @@
     ISSUER_BLOG_ID: '3250349446996015558',
     WIDGET_ID: 'LinkList6',            // id do seu LinkList; se não achar, varre todos
     WIDGET_LICENSE_LABEL: 'Licença',   // texto do item onde fica o token
-    PUBLIC_KEY_PEM: ['-----BEGIN PUBLIC KEY-----',
-      'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqf4GCjb3JqYIXquaoxBU',
-      'olpZlmBpcws412UsuKPBxZygL3t10er/Xu3d5qIeB0QdGFpUJtnFhAF7Y5BmwHVI',
-      'C0tYF2NwkTXSgvn6pV+ycL3uwKS2M4cU6ZOXBoKW26CFOYA2XeVbVgTvda/if9LK',
-      'MryfEuoQfu7E8kPzsFuO5Km36ogl8v6RgCzIdEduoofq3pXrrjouDLR2b/soMqHw',
-      'AHRgGFWo+mJecq/zyTFfigb16zo+vM1OsvT1+ZGSVMdikfVB9VR2RsCnrinZH5Yk',
-      'sAVQpcuO8ULI1FvXgwU/pZFp0lMg4FzDVftxbQkMWpp4mqUpCMmFY554FCoTd112',
-      'BwIDAQAB',
-      '-----END PUBLIC KEY-----'
+export const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwGH2j5nMEMUfOAIvDbt4
+AL7ZPUiQTMySvT/tF5CRxcjDE+Lt7kHMyNuMOuU/JgMHDh/wlGbZYp+7s7E7kas4
+WXaVBKiBfaEl4MChVAtk6vVk0gZvJPHZYOK4TsnWzq4BjamvC293qSxP9AqF3Bnu
+QyHExG4GOPkkxux5JJgSoBPRyCpV0ULYNb6MLKRF83ehjJuRAksxIpXuxNDPTqJ/
+L9lkQtq85l6aRV4WruyA7FXHLBMdtZ1CXsRRl3aDP03qDPhgG+CVGS5SnhOzYzxa
+djMB9yEaN0i8E5z7QzBdZpdAT/uAM+/2RJ/MRLUb63d+Icidk3IQF2AjDmg9QZKl
+LQIDAQAB
+-----END PUBLIC KEY-----`
     ].join('\n'),
     // opcionais:
     BLOCK_ALL_CSS: true,
