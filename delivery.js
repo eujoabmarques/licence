@@ -5,8 +5,7 @@
     ISSUER_BLOG_ID: '8384640390484345008',
     WIDGET_ID: 'LinkList6',            // id do seu LinkList; se não achar, varre todos
     WIDGET_LICENSE_LABEL: 'Licença',   // texto do item onde fica o token
-    PUBLIC_KEY_PEM: [
-      '-----BEGIN PUBLIC KEY-----',
+    PUBLIC_KEY_PEM: ['-----BEGIN PUBLIC KEY-----',
       'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqf4GCjb3JqYIXquaoxBU',
       'olpZlmBpcws412UsuKPBxZygL3t10er/Xu3d5qIeB0QdGFpUJtnFhAF7Y5BmwHVI',
       'C0tYF2NwkTXSgvn6pV+ycL3uwKS2M4cU6ZOXBoKW26CFOYA2XeVbVgTvda/if9LK',
