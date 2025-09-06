@@ -1,11 +1,12 @@
 //<![CDATA[
 (function(){
-  const CONFIG = {
-    PRODUCT_NAME: 'TemplateBras · Licença',
-    ISSUER_BLOG_ID: '3250349446996015558',
-    WIDGET_ID: 'LinkList6',            // id do seu LinkList; se não achar, varre todos
-    WIDGET_LICENSE_LABEL: 'Licença',   // texto do item onde fica o token
-export const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
+const CONFIG = {
+  PRODUCT_NAME: 'TemplateBras · Licença',
+  ISSUER_BLOG_ID: '3250349446996015558',
+  WIDGET_ID: 'LinkList6',
+  WIDGET_LICENSE_LABEL: 'Licença',
+
+  PUBLIC_KEY_PEM: `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwGH2j5nMEMUfOAIvDbt4
 AL7ZPUiQTMySvT/tF5CRxcjDE+Lt7kHMyNuMOuU/JgMHDh/wlGbZYp+7s7E7kas4
 WXaVBKiBfaEl4MChVAtk6vVk0gZvJPHZYOK4TsnWzq4BjamvC293qSxP9AqF3Bnu
@@ -13,12 +14,13 @@ QyHExG4GOPkkxux5JJgSoBPRyCpV0ULYNb6MLKRF83ehjJuRAksxIpXuxNDPTqJ/
 L9lkQtq85l6aRV4WruyA7FXHLBMdtZ1CXsRRl3aDP03qDPhgG+CVGS5SnhOzYzxa
 djMB9yEaN0i8E5z7QzBdZpdAT/uAM+/2RJ/MRLUb63d+Icidk3IQF2AjDmg9QZKl
 LQIDAQAB
------END PUBLIC KEY-----`
-    ].join('\n'),
-    // opcionais:
-    BLOCK_ALL_CSS: true,
-    DEBUG: true
-  }; // <-- fecha o objeto CONFIG corretamente
+-----END PUBLIC KEY-----`,
+
+  // opcionais:
+  BLOCK_ALL_CSS: true,
+  DEBUG: true
+};
+
 
   const te=new TextEncoder(), td=new TextDecoder();
   const norm=s=>s.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
