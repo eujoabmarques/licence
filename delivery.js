@@ -15,9 +15,11 @@
       'sAVQpcuO8ULI1FvXgwU/pZFp0lMg4FzDVftxbQkMWpp4mqUpCMmFY554FCoTd112',
       'BwIDAQAB',
       '-----END PUBLIC KEY-----'
-    ].join('\n')
-    // se quiser, pode recolocar BLOCK_ALL_CSS/DEBUG aqui
-  }; // ← FECHA o objeto CONFIG
+    ].join('\n'),
+    // opcionais:
+    BLOCK_ALL_CSS: true,
+    DEBUG: true
+  }; // <-- fecha o objeto CONFIG corretamente
 
   const te=new TextEncoder(), td=new TextDecoder();
   const norm=s=>s.normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
