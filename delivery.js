@@ -1,7 +1,4 @@
-<script type='text/javascript'>
 //<![CDATA[
-
-
 (function(){
   const CONFIG = {
     PRODUCT_NAME: 'TemplateBras · Licença',
@@ -1105,4 +1102,3 @@ function itemsFromMime(raw){
   }).observe(document.body, {subtree:true, childList:true});
 })();
 //]]>
-</script>
