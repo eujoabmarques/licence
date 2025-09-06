@@ -2,7 +2,7 @@
 (function(){
   const CONFIG = {
     PRODUCT_NAME: 'TemplateBras · Licença',
-    ISSUER_BLOG_ID: '8384640390484345008',
+    ISSUER_BLOG_ID: '3250349446996015558',
     WIDGET_ID: 'LinkList6',            // id do seu LinkList; se não achar, varre todos
     WIDGET_LICENSE_LABEL: 'Licença',   // texto do item onde fica o token
     PUBLIC_KEY_PEM: ['-----BEGIN PUBLIC KEY-----',
