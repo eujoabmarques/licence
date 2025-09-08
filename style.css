@@ -292,8 +292,6 @@ button{font:inherit}
 
 
 
-
-
 /* ===== Opções do produto (item) ===== */
 #extras-box{ margin:12px 0 10px; display:grid; gap:12px }
 .opt-group{ border:1px solid var(--ring); border-radius:12px; padding:10px; background:#fff }
