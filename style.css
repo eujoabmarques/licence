@@ -272,6 +272,45 @@ button{font:inherit}
 @supports (-webkit-touch-callout: none){
   .searchfab__input{ font-size:16px; }
 }
+/* FIX 1: tira o visual nativo do botão */
+.searchfab__toggle,
+.searchfab__close{
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  box-shadow: var(--shadow-1);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* FIX 2: garante que o texto "Abrir pesquisa" fique escondido */
+.searchfab .sr-only{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
+}
+
+/* FIX 3: garante o espaçamento da lupa dentro do input */
+.searchfab .searchfab__input{
+  -webkit-appearance: none;
+  appearance: none;
+  padding-left: 56px !important;
+  padding-inline-start: 56px !important;
+  text-indent: 0 !important;
+  border: 0;
+  background: transparent;
+  outline: 0;
+}
 
 
 
