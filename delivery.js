@@ -2,78 +2,60 @@
 
 /* === SearchFab (bind robusto, sem tocar no CSS) =================== */
 (function(){
-  function openBox(btn){
-    const boxId = btn.getAttribute('aria-controls');
-    if (!boxId) return;
-    const box  = document.getElementById(boxId);
-    const wrap = btn.closest('.searchfab');
-    if (!box || !wrap) return;
+  // evita bind duplicado (loader, re-dispatch, etc.)
+  if (window.__SFAB_BOUND__) return; 
+  window.__SFAB_BOUND__ = true;
 
-    const willOpen = !wrap.classList.contains('is-open');
-    wrap.classList.toggle('is-open', willOpen);
-    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    box.hidden = !willOpen;
-
-    if (willOpen){
+  function openWrap(wrap){
+    if (!wrap) return;
+    const btn = wrap.querySelector('.searchfab__toggle');
+    const box = wrap.querySelector('.searchfab__box');
+    wrap.classList.add('is-open');
+    if (btn) btn.setAttribute('aria-expanded','true');
+    if (box) {
+      box.hidden = false;
       const input = box.querySelector('.searchfab__input');
       setTimeout(()=>{ try{ input && input.focus(); }catch(_){} }, 30);
     }
   }
-
-  function closeBox(closeBtn){
-    const wrap = closeBtn.closest('.searchfab');
+  function closeWrap(wrap){
     if (!wrap) return;
-    wrap.classList.remove('is-open');
+    const btn = wrap.querySelector('.searchfab__toggle');
     const box = wrap.querySelector('.searchfab__box');
-    const tgl = wrap.querySelector('.searchfab__toggle');
+    wrap.classList.remove('is-open');
+    if (btn) btn.setAttribute('aria-expanded','false');
     if (box) box.hidden = true;
-    if (tgl) tgl.setAttribute('aria-expanded','false');
+  }
+  function toggleFromButton(btn){
+    const wrap = btn.closest('.searchfab');
+    if (!wrap) return;
+    if (wrap.classList.contains('is-open')) closeWrap(wrap);
+    else openWrap(wrap);
   }
 
-  function bindDirect(){
-    document.querySelectorAll('.searchfab__toggle').forEach(btn=>{
-      btn.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); openBox(btn); });
-    });
-    document.querySelectorAll('.searchfab__close').forEach(btn=>{
-      btn.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); closeBox(btn); });
-    });
-  }
+  // UM único listener p/ tudo (sem captura)
+  document.addEventListener('click', function(e){
+    const tgl = e.target.closest?.('.searchfab__toggle');
+    if (tgl){ e.preventDefault(); toggleFromButton(tgl); return; }
 
-  // Fallback: delegação em CAPTURE (evita conflito com outros listeners)
-  function bindCapture(){
-    document.body.addEventListener('click', function(e){
-      const tgl = e.target.closest && e.target.closest('.searchfab__toggle');
-      if (tgl){ e.preventDefault(); openBox(tgl); return; }
-      const cls = e.target.closest && e.target.closest('.searchfab__close');
-      if (cls){ e.preventDefault(); closeBox(cls); return; }
-    }, true); // capture
-  }
+    const cls = e.target.closest?.('.searchfab__close');
+    if (cls){ e.preventDefault(); closeWrap(cls.closest('.searchfab')); return; }
 
-  function bindGlobal(){
-    // ESC fecha
-    document.addEventListener('keydown', e=>{
-      if (e.key === 'Escape'){
-        document.querySelectorAll('.searchfab.is-open').forEach(w=>{
-          w.classList.remove('is-open');
-          const box = w.querySelector('.searchfab__box'); if (box) box.hidden = true;
-          const tgl = w.querySelector('.searchfab__toggle'); if (tgl) tgl.setAttribute('aria-expanded','false');
-        });
-      }
+    // clique fora fecha
+    document.querySelectorAll('.searchfab.is-open').forEach(w=>{
+      if (!w.contains(e.target)) closeWrap(w);
     });
-    // Clique-fora fecha
-    document.addEventListener('click', e=>{
-      document.querySelectorAll('.searchfab.is-open').forEach(w=>{
-        if (!w.contains(e.target)){
-          w.classList.remove('is-open');
-          const box = w.querySelector('.searchfab__box'); if (box) box.hidden = true;
-          const tgl = w.querySelector('.searchfab__toggle'); if (tgl) tgl.setAttribute('aria-expanded','false');
-        }
-      });
-    });
-  }
+  }, {passive:false});
 
-  function init(){ bindDirect(); bindCapture(); bindGlobal(); console.log('[SearchFab] pronto'); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  // ESC fecha
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape'){
+      document.querySelectorAll('.searchfab.is-open').forEach(closeWrap);
+    }
+  });
+
+  // log opcional
+  try{ console.log('[SearchFab] bound once'); }catch(_){}
 })();
 
 
