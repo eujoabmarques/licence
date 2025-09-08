@@ -219,6 +219,7 @@ button{font:inherit}
     transform:translateY(-50%); opacity:0; visibility:hidden;
     transition: opacity .18s ease, visibility .18s step-end, transform .18s ease;
     filter: drop-shadow(0 8px 24px rgba(0,0,0,.08));
+    z-index: 99999;
   }
   .searchfab.is-open .searchfab__box{
     opacity:1; visibility:visible; transform:translateY(-50%);
