@@ -97,7 +97,7 @@ button{font:inherit}
 .header .status-slot .status-data{display:none}
 .pill{
   border:2px solid var(--ok); color:var(--ok);
-  padding:7px 12px; border-radius:10px; font-weight:800; font-size:12px;
+  padding:7px 5px; border-radius:10px; font-weight:800; font-size:12px;
 }
 .pill.closed{ background:var(--brand)!important;color:#fff!important;border-color:var(--brand)!important; }
 
