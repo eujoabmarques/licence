@@ -291,7 +291,7 @@ button{font:inherit}
 
 
 /* ===== Ocultar título do widget Label1 (Cardápio) ===== */
-#Label1 .title, #Label1 h2.title, #Label1 h3.title { display:none !important; }
+#Label1 .title, #Label1 h2.title, #Label1 h2.title { display:none !important; }
 #Label1 { margin: 0 } /* opcional: remove margem extra do widget */
 
 
