@@ -672,9 +672,21 @@ document.addEventListener('DOMContentLoaded', function(){
 (function(){
   'use strict';
 
-  // utilidades
+  /* ---------- utils ---------- */
   function norm(s){
     return String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
+  }
+  // unifica nomes de dias (com/sem "-feira", abreviações)
+  function canonDay(s){
+    const n = norm(s).replace(/\s*-\s*feira$/,'');
+    if (/^dom/.test(n)) return 'domingo';
+    if (/^seg/.test(n) || /^2a$/.test(n)) return 'segunda';
+    if (/^ter/.test(n) || /^3a$/.test(n)) return 'terca';
+    if (/^qua/.test(n) || /^4a$/.test(n)) return 'quarta';
+    if (/^qui/.test(n) || /^5a$/.test(n)) return 'quinta';
+    if (/^sex/.test(n) || /^6a$/.test(n)) return 'sexta';
+    if (/^sab/.test(n)) return 'sabado';
+    return n;
   }
   function parseTime(s){
     const m=/(\d{1,2}):(\d{2})/.exec(String(s||'')); if(!m) return null;
@@ -685,52 +697,36 @@ document.addEventListener('DOMContentLoaded', function(){
     return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
   }
   function todayKey(d=new Date()){
-    return norm(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(d));
+    return canonDay(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(d));
   }
 
-  // ler horários da tabela .open-hours
+  /* ---------- lê a tabela .open-hours ---------- */
   function getSchedule(){
     const rows=[...document.querySelectorAll('.open-hours tr')];
     if(!rows.length) return null;
     const map={};
     rows.forEach(tr=>{
-      const day=norm(tr.children?.[0]?.textContent||'');
-      const txt=(tr.children?.[1]?.textContent||'').trim();
-      const low=norm(txt);
-      // fechado: "Fechado", "—", "-", vazio, ou 00:00 às 00:00
+      const day = canonDay(tr.children?.[0]?.textContent || '');
+      const txt = (tr.children?.[1]?.textContent || '').trim();
+      const low = norm(txt);
+      // fechado: vazio, "Fechado", traço, ou 00:00 às 00:00
       if(!txt || /fechado|—|^-+$/.test(low)){ map[day]=null; return; }
       const mm=/(\d{1,2}:\d{2})\s*às\s*(\d{1,2}:\d{2})/i.exec(txt);
       if(!mm){ map[day]=null; return; }
-      const a=parseTime(mm[1]); const b=parseTime(mm[2]);
+      const a=parseTime(mm[1]), b=parseTime(mm[2]);
       if(a===null||b===null||a===b){ map[day]=null; return; } // 00:00–00:00 => fechado
       map[day]={start:a,end:b,overnight:(b<a)}; // overnight: ex 20:00–02:00
     });
     return map;
   }
 
-  // estado atual (abre também "próxima abertura" para o alerta)
-  function isOpenNow(){
-    const sched=getSchedule(); if(!sched) return {open:null,nextText:''};
-    const now=new Date(); const key=todayKey(now); const slot=sched[key];
-    if(!slot) return {open:false,nextText:calcNextOpenText(sched, now)};
-    const mins=now.getHours()*60+now.getMinutes();
-    let open=false;
-    if (slot.overnight){
-      // ex: 20:00–02:00 => aberto se (>= start) OU (<= end)
-      open = (mins>=slot.start || mins<=slot.end);
-    } else {
-      open = (mins>=slot.start && mins<=slot.end);
-    }
-    return {open, nextText: open ? '' : calcNextOpenText(sched, now)};
-  }
-
+  /* ---------- estado aberto/fechado ---------- */
   function calcNextOpenText(sched, now){
     const key=todayKey(now); const slot=sched[key];
     const mins=now.getHours()*60+now.getMinutes();
     if (slot && !slot.overnight && mins < slot.start){
       return 'Abre hoje às ' + fmtHM(slot.start);
     }
-    // procura o próximo dia com horário
     for (let i=1;i<=7;i++){
       const d=new Date(now); d.setDate(now.getDate()+i);
       const k=todayKey(d); const s=sched[k];
@@ -738,8 +734,18 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     return '';
   }
+  function isOpenNow(){
+    const sched=getSchedule(); if(!sched) return {open:null,nextText:''};
+    const now=new Date(); const key=todayKey(now); const slot=sched[key];
+    if(!slot) return {open:false,nextText:calcNextOpenText(sched, now)};
+    const mins=now.getHours()*60+now.getMinutes();
+    let open=false;
+    if (slot.overnight){ open = (mins>=slot.start || mins<=slot.end); }
+    else { open = (mins>=slot.start && mins<=slot.end); }
+    return {open,nextText: open ? '' : calcNextOpenText(sched, now)};
+  }
 
-  // UI: selo no header (apenas por horários)
+  /* ---------- UI: selo no header ---------- */
   function updateHeaderPill(){
     const headerRoot =
       document.querySelector('b\\:section#header') ||
@@ -755,7 +761,7 @@ document.addEventListener('DOMContentLoaded', function(){
     slot.innerHTML=''; slot.appendChild(pill);
   }
 
-  // UI: trava finalização quando fechado + banner
+  /* ---------- UI: bloquear finalização fora do horário ---------- */
   function enforceCheckoutGuard(){
     const {open}=isOpenNow();
     const send=document.getElementById('btn-enviar-wa');
@@ -777,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function(){
     } else if (banner){ banner.remove(); }
   }
 
-  // Garantia extra: intercepta cliques e barra a ação ao estar fechado
+  // trava via captura (garante bloqueio mesmo se alguém tentar burlar)
   document.addEventListener('click', function(e){
     const send = e.target.closest?.('#btn-enviar-wa');
     const go   = e.target.closest?.('#btn-ir-finalizar');
@@ -788,20 +794,13 @@ document.addEventListener('DOMContentLoaded', function(){
         alert('Estamos fechados no momento. ' + (nextText || 'Volte no nosso horário de atendimento.'));
       }
     }
-  }, true); // capture: bloqueia antes de outros handlers
+  }, true);
 
-  function tick(){
-    updateHeaderPill();
-    enforceCheckoutGuard();
-  }
-
+  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick);
   else tick();
-
-  // Revalida a cada minuto
   setInterval(tick, 60*1000);
 })();
-
 
 
     /* ====== NOTIFICAÇÕES ====== */
