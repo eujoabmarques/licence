@@ -233,7 +233,7 @@ function fmt(v){ return 'R$ ' + Number(v||0).toFixed(2).replace('.', ','); }
 function save(){ try{ localStorage.setItem("carrinho", JSON.stringify(carrinho)); }catch(_){} }
 function escapeHTML(s){
   return String(s || '').replace(/[&<>"']/g, function(m){
-    return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m];
+    return {"&":"&amp;","<":"&lt;","&gt;":">","\"":"&quot;","'":"&#39;"}[m];
   });
 }
 
@@ -303,7 +303,7 @@ function getDeliveryFeesFromWidget(){
   return parseFeesString(item && item.value);
 }
 
-/* ========= UI da Taxa/Bairro (aba Finalizar) ========= */
+/* ========= UI da Entrega (aba Finalizar) ========= */
 function ensureBairroUI(){
   if (!TAXAS_ENTREGA || !TAXAS_ENTREGA.length) return; // nada a montar
   var tab = document.getElementById('tab-finalizar') ||
@@ -317,9 +317,9 @@ function ensureBairroUI(){
     wrap.id = 'entrega-bairro-wrap';
     wrap.style.margin = '12px 0 8px';
     wrap.innerHTML =
-      '<label for="cf-bairro" style="display:block;margin-bottom:6px;font-weight:600">Bairro / Região</label>'+
+      '<label for="cf-bairro" style="display:block;margin-bottom:6px;font-weight:600">Entrega</label>'+
       '<select id="cf-bairro" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb">'+
-      '  <option value="">Selecione...</option>'+
+      '  <option value="">Selecione a entrega...</option>'+
       '</select>';
     var resumo = document.getElementById('cart-resumo');
     if (resumo && resumo.parentNode) resumo.parentNode.insertBefore(wrap, resumo.nextSibling);
@@ -329,30 +329,50 @@ function ensureBairroUI(){
   var sel = document.getElementById('cf-bairro');
   if (!sel) return;
 
-  var html = '<option value="">Selecione...</option>';
+  var html =
+    '<option value="">Selecione a entrega...</option>' +
+    '<option value="Retirar" data-valor="0" data-retirar="1">Retirar no balcão — sem taxa</option>';
   for (var i=0;i<TAXAS_ENTREGA.length;i++){
     var t = TAXAS_ENTREGA[i];
     html += '<option value="'+escapeHTML(t.bairro)+'" data-valor="'+t.valor+'">'+escapeHTML(t.bairro)+' — '+fmt(t.valor)+'</option>';
   }
   sel.innerHTML = html;
 
-  // restaura seleção salva (se ainda válida)
+  // restaura seleção salva (inclui "Retirar")
   try{
     var dados = JSON.parse(localStorage.getItem('dadosCliente')||'{}');
     if (dados && dados.bairro){
-      for (var j=0;j<TAXAS_ENTREGA.length;j++){
-        if (TAXAS_ENTREGA[j].bairro === dados.bairro){ sel.value = dados.bairro; break; }
+      if (dados.bairro === 'Retirar'){ sel.value = 'Retirar'; }
+      else {
+        for (var j=0;j<TAXAS_ENTREGA.length;j++){
+          if (TAXAS_ENTREGA[j].bairro === dados.bairro){ sel.value = dados.bairro; break; }
+        }
       }
     }
   }catch(_){}
 
-  sel.onchange = function(){ salvarForm(); atualizarResumoFinalizar(); };
+  function toggleEndereco(){
+    var opt = sel.selectedOptions && sel.selectedOptions[0];
+    var isRetirar = !!(opt && opt.dataset && opt.dataset.retirar === '1');
+    var end = document.getElementById('cf-endereco');
+    var cont = end && (end.closest && end.closest('.field') || end.parentElement);
+    if (cont) cont.style.display = isRetirar ? 'none' : '';
+  }
+
+  sel.onchange = function(){ salvarForm(); atualizarResumoFinalizar(); toggleEndereco(); };
+  toggleEndereco();
 }
 function getBairroSelecionado(){
   var sel = document.getElementById('cf-bairro');
   var bairro = (sel && sel.value) || '';
-  var taxa = 0;
-  if (bairro){
+  var taxa = 0, retirar = false;
+
+  if (sel && sel.selectedOptions && sel.selectedOptions[0]){
+    var opt = sel.selectedOptions[0];
+    if (opt.dataset.retirar === '1'){ retirar = true; bairro = 'Retirar'; taxa = 0; }
+  }
+
+  if (!retirar && bairro){
     for (var i=0;i<TAXAS_ENTREGA.length;i++){
       if (TAXAS_ENTREGA[i].bairro === bairro){ taxa = Number(TAXAS_ENTREGA[i].valor||0); break; }
     }
@@ -360,7 +380,7 @@ function getBairroSelecionado(){
       taxa = Number(sel.selectedOptions[0].getAttribute('data-valor')||0);
     }
   }
-  return { bairro:bairro, taxa:taxa };
+  return { bairro:bairro, taxa:taxa, retirar:retirar };
 }
 
 /* ========= Carrinho ========= */
@@ -395,7 +415,13 @@ function atualizarResumoFinalizar(){
     'Itens: <strong>'+qtd+'</strong>',
     'Subtotal: <strong>'+fmt(subtotal)+'</strong>'
   ];
-  if (sel.bairro) partes.push('Entrega ('+escapeHTML(sel.bairro)+'): <strong>'+fmt(sel.taxa)+'</strong>');
+  if (sel.bairro) {
+    if (sel.bairro === 'Retirar'){
+      partes.push('Retirada no balcão: <strong>sem taxa</strong>');
+    } else {
+      partes.push('Entrega ('+escapeHTML(sel.bairro)+'): <strong>'+fmt(sel.taxa)+'</strong>');
+    }
+  }
   partes.push('Total: <strong>'+fmt(subtotal + Number(sel.taxa||0))+'</strong>');
   el.innerHTML = partes.join(' &nbsp;•&nbsp; ');
 }
@@ -542,7 +568,7 @@ function enviarPedido(){
     } else {
       try{ switchCartTab('finalizar'); }catch(_){}
       var s = document.getElementById('cf-bairro'); if (s) s.focus();
-      alert('Selecione o Bairro/Região para calcular a taxa de entrega.');
+      alert('Selecione a Entrega para calcular a taxa.');
       return;
     }
   }
@@ -561,17 +587,28 @@ function enviarPedido(){
     if (it.obs){ msg += '   - Obs: '+it.obs+'\n'; }
     total += Number(it.preco||0) * Number(it.quantidade||1);
   }
+
   if (dados.bairro){
-    msg += '\nEntrega ('+dados.bairro+'): '+fmt(dados.taxaEntrega||0)+'\n';
-    total += Number(dados.taxaEntrega||0);
+    if (dados.bairro === 'Retirar'){
+      msg += '\nRetirada no balcão (sem taxa)\n';
+      // total não muda
+    } else {
+      msg += '\nEntrega ('+dados.bairro+'): '+fmt(dados.taxaEntrega||0)+'\n';
+      total += Number(dados.taxaEntrega||0);
+    }
   }
+
   msg += '\nTotal: '+fmt(total)+'\n\n';
   msg += 'Dados para entrega:\n';
   msg += '• Nome: '+dados.nome+'\n';
   if (dados.email)   msg += '• E-mail: '+dados.email+'\n';
   msg += '• WhatsApp: '+dados.whats+'\n';
-  if (dados.endereco) msg += '• Endereço: '+dados.endereco+'\n';
-  if (dados.bairro)   msg += '• Bairro/Região: '+dados.bairro+'\n';
+  if (dados.bairro === 'Retirar'){
+    msg += '• Modalidade: Retirada no balcão\n';
+  } else {
+    if (dados.endereco) msg += '• Endereço: '+dados.endereco+'\n';
+    if (dados.bairro)   msg += '• Entrega: '+dados.bairro+'\n';
+  }
   if (dados.pagto)    msg += '• Pagamento: '+dados.pagto+'\n';
 
   var numero = getWhatsNumberFromWidget() || "5582991090858";
@@ -617,7 +654,7 @@ document.addEventListener('DOMContentLoaded', function(){
   el = document.getElementById('drawer-overlay'); if (el) el.addEventListener('click', function(){ toggleMenu(false); fecharCarrinho(); });
   document.addEventListener('keydown', function(e){ if (e.key==='Escape'){ toggleMenu(false); fecharCarrinho(); } });
 
-  // Carrega taxas do widget e monta UI do bairro
+  // Carrega taxas do widget e monta UI da entrega
   TAXAS_ENTREGA = getDeliveryFeesFromWidget() || [];
   ensureBairroUI();
 
@@ -839,7 +876,7 @@ document.addEventListener('DOMContentLoaded', function(){
         pop.style.zIndex = '10000';
         pop.style.background = 'var(--paper)';
         pop.style.color = 'var(--ink)';
-        pop.style.border = '1px solid var(--ring)';
+        pop.style.border = '1px solid ' + (getComputedStyle(document.documentElement).getPropertyValue('--ring')||'#e5e7eb');
         pop.style.borderRadius = '12px';
         pop.style.boxShadow = 'var(--shadow)';
         pop.style.padding = '12px';
@@ -877,7 +914,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /** ==============================
-   *  opcap.blog: grupos + limites
+   *  opcao.blog: grupos + limites
    *  ============================== */
   function parseOpcaoURL(href){
     try{
@@ -913,16 +950,12 @@ function itemsFromMime(raw){
     .map(s => s.trim())
     .filter(Boolean)
     .map(s => {
-      // captura um número (com , ou .) no FINAL da string,
-      // opcionalmente precedido por ":" ou "+" e/ou "R$"
-      // Exemplos válidos: "Cebola0" | "Tomate+2" | "Carne:3" | "Ervilhas + R$ 1,50"
       const m = s.match(/^(.+?)\s*(?:[:+]\s*)?(?:R?\$?\s*)?([0-9]+(?:[.,][0-9]{1,2})?)\s*$/);
       if (m) {
         const label = m[1].trim();
         const extra = BRtoNumber(m[2]);
         return { label, extra };
       }
-      // sem número no fim -> extra 0
       return { label: s, extra: 0 };
     });
 }
@@ -999,7 +1032,7 @@ function itemsFromMime(raw){
           const inp = document.createElement('input');
           inp.type = (g.type==='check'?'checkbox':'radio');
           inp.name = name; inp.id=id;
-          inp.required = (g.type==='radio');            // radio obrigatório
+          inp.required = (g.type==='radio');
           inp.dataset.group = niceGroup;
           inp.dataset.label = it.label;
           inp.dataset.price = it.extra;
@@ -1011,7 +1044,6 @@ function itemsFromMime(raw){
         });
       }
 
-      // limite de checkboxes: desabilita os não marcados quando atingir o máximo
       function enforceLimits(){
         if (g.type !== 'check') return;
         const checks = Array.from(list.querySelectorAll('input[type="checkbox"]'));
@@ -1202,7 +1234,6 @@ function itemsFromMime(raw){
         closeBtn.setAttribute('aria-label','Fechar anúncio');
         closeBtn.textContent = '×';
         closeBtn.addEventListener('click', function(){
-          // sessionStorage.setItem('adClosed_'+(w.id||img.src), '1'); // opcional: lembrar na sessão
           if (w && w.parentNode) w.parentNode.removeChild(w);
         });
         content.appendChild(closeBtn);
@@ -1212,7 +1243,7 @@ function itemsFromMime(raw){
       var title = w.querySelector('h2, .title');
       if (title) {
         title.classList.add('ad-title');
-        content.insertBefore(title, content.firstChild); // entra no topo do card
+        content.insertBefore(title, content.firstChild);
       }
 
       // legenda vira descrição
@@ -1243,7 +1274,6 @@ function itemsFromMime(raw){
     });
   }
 
-  // roda em todos os casos
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', enhanceAll);
   } else {
@@ -1251,7 +1281,6 @@ function itemsFromMime(raw){
   }
   window.addEventListener('load', enhanceAll);
 
-  // se o Blogger re-renderizar, aplica de novo
   new MutationObserver(function(muts){
     for (var i=0;i<muts.length;i++){
       if (muts[i].addedNodes && muts[i].addedNodes.length){ enhanceAll(); break; }
