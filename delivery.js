@@ -25,31 +25,7 @@
     if (block) stop(e);
   }, { capture: true });
 
-  // [Opcional] Sinaliza quando DevTools parece aberto (detecção simples)
-  const devtoolsGuard = () => {
-    const THRESHOLD = 160; // px
-    const opened =
-      (window.outerWidth - window.innerWidth > THRESHOLD) ||
-      (window.outerHeight - window.innerHeight > THRESHOLD);
 
-    let overlay = document.getElementById('devtools-overlay');
-    if (opened) {
-      if (!overlay) {
-        overlay = Object.assign(document.createElement('div'), { id: 'devtools-overlay' });
-        Object.assign(overlay.style, {
-          position: 'fixed',
-          inset: '0',
-        /*   background: 'rgba(0,0,0,0.15)',*/
-        /*  backdropFilter: 'blur(2px)' ,*/
-          zIndex: '2147483647',
-          pointerEvents: 'none' // troque para 'all' se quiser bloquear cliques
-        });
-        document.body.appendChild(overlay);
-      }
-    } else if (overlay) {
-      overlay.remove();
-    }
-  };
   setInterval(devtoolsGuard, 1000);
 })();
 
