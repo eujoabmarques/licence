@@ -238,7 +238,6 @@ button{font:inherit}
      font-size:32px;
      font-weight:800;
      margin:4px 0 12px;
-    display: none !important;
 }
  #Cardapio .CLOUD-label-widget-content, #Cardapio .cloud-label-widget-content{
      display:flex;
