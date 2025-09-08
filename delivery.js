@@ -667,74 +667,142 @@ document.addEventListener('DOMContentLoaded', function(){
 
     if (!headerRoot) return;
 
-    /* ====== STATUS ======
-       Regras:
-       1) Se o PRIMEIRO item do LinkList5 tiver URL 'True' ou 'False', respeita como manual.
-       2) Caso contrário, calcula pelos horários do widget "Horário de atendimento". */
-    const statusSlot = headerRoot.querySelector('.status-slot');
-    const linkEls = Array.from(headerRoot.querySelectorAll('.status-slot .status-data a'));
-    function norm(s){ return String(s||'').trim().toLowerCase(); }
+    /* ====== STATUS ====== */
 
-    function computeOpenByHours(){
-      // Lê a tabela de horários do menu (quando aberto no DOM)
-      const rows = Array.from(document.querySelectorAll('.open-hours tr'));
-      if (!rows.length) return null;
-      const map = {};
-      rows.forEach(tr=>{
-        const c = tr.children; if (!c || c.length<2) return;
-        const day = norm(c[0].textContent);
-        const txt = String(c[1].textContent||'').trim();
-        map[day] = txt;
-      });
+(function(){
+  'use strict';
 
-      // Dia atual em pt-BR (domingo..sábado)
-      const now = new Date();
-      const dia = new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(now);
-      const key = norm(dia);
-      const faixa = map[key];
-      if (!faixa) return null;
+  // utilidades
+  function norm(s){
+    return String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
+  }
+  function parseTime(s){
+    const m=/(\d{1,2}):(\d{2})/.exec(String(s||'')); if(!m) return null;
+    const h=+m[1], mi=+m[2]; return h*60+mi;
+  }
+  function fmtHM(mins){
+    const h=Math.floor(mins/60), m=mins%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  function todayKey(d=new Date()){
+    return norm(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(d));
+  }
 
-      // Formato "HH:MM às HH:MM"
-      const m = /(\d{2}):(\d{2})\s*às\s*(\d{2}):(\d{2})/.exec(faixa);
-      if (!m) return null;
+  // ler horários da tabela .open-hours
+  function getSchedule(){
+    const rows=[...document.querySelectorAll('.open-hours tr')];
+    if(!rows.length) return null;
+    const map={};
+    rows.forEach(tr=>{
+      const day=norm(tr.children?.[0]?.textContent||'');
+      const txt=(tr.children?.[1]?.textContent||'').trim();
+      const low=norm(txt);
+      // fechado: "Fechado", "—", "-", vazio, ou 00:00 às 00:00
+      if(!txt || /fechado|—|^-+$/.test(low)){ map[day]=null; return; }
+      const mm=/(\d{1,2}:\d{2})\s*às\s*(\d{1,2}:\d{2})/i.exec(txt);
+      if(!mm){ map[day]=null; return; }
+      const a=parseTime(mm[1]); const b=parseTime(mm[2]);
+      if(a===null||b===null||a===b){ map[day]=null; return; } // 00:00–00:00 => fechado
+      map[day]={start:a,end:b,overnight:(b<a)}; // overnight: ex 20:00–02:00
+    });
+    return map;
+  }
 
-      const [_, h1, m1, h2, m2] = m.map(Number);
-      const start = new Date(now); start.setHours(h1, m1, 0, 0);
-      const end   = new Date(now); end.setHours(h2, m2, 0, 0);
-
-      return now >= start && now <= end;
+  // estado atual (abre também "próxima abertura" para o alerta)
+  function isOpenNow(){
+    const sched=getSchedule(); if(!sched) return {open:null,nextText:''};
+    const now=new Date(); const key=todayKey(now); const slot=sched[key];
+    if(!slot) return {open:false,nextText:calcNextOpenText(sched, now)};
+    const mins=now.getHours()*60+now.getMinutes();
+    let open=false;
+    if (slot.overnight){
+      // ex: 20:00–02:00 => aberto se (>= start) OU (<= end)
+      open = (mins>=slot.start || mins<=slot.end);
+    } else {
+      open = (mins>=slot.start && mins<=slot.end);
     }
+    return {open, nextText: open ? '' : calcNextOpenText(sched, now)};
+  }
 
-    if (statusSlot) {
-      let isOpen = null, label = '';
-
-      if (linkEls.length) {
-        const first = linkEls[0];
-        const v = norm(first.getAttribute('href') || first.textContent);
-        if (v === 'true' || v === 'false') {
-          isOpen = (v === 'true');
-          label  = (first.textContent || (isOpen ? 'DELIVERY ABERTO!' : 'DELIVERY FECHADO!')).trim();
-        }
-      }
-
-      if (isOpen === null) {
-        const auto = computeOpenByHours();
-        if (auto !== null) {
-          isOpen = !!auto;
-          label  = isOpen ? 'DELIVERY ABERTO!' : 'DELIVERY FECHADO!';
-        } else {
-          isOpen = true; // fallback
-          label  = 'DELIVERY ABERTO!';
-        }
-      }
-
-      const pill = document.createElement('span');
-      pill.className = 'pill' + (isOpen ? '' : ' closed');
-      pill.textContent = label;
-
-      statusSlot.innerHTML = '';
-      statusSlot.appendChild(pill);
+  function calcNextOpenText(sched, now){
+    const key=todayKey(now); const slot=sched[key];
+    const mins=now.getHours()*60+now.getMinutes();
+    if (slot && !slot.overnight && mins < slot.start){
+      return 'Abre hoje às ' + fmtHM(slot.start);
     }
+    // procura o próximo dia com horário
+    for (let i=1;i<=7;i++){
+      const d=new Date(now); d.setDate(now.getDate()+i);
+      const k=todayKey(d); const s=sched[k];
+      if (s){ return (i===1 ? 'Amanhã' : 'Em breve') + ' às ' + fmtHM(s.start); }
+    }
+    return '';
+  }
+
+  // UI: selo no header (apenas por horários)
+  function updateHeaderPill(){
+    const headerRoot =
+      document.querySelector('b\\:section#header') ||
+      document.querySelector('.header.section') ||
+      document.querySelector('.header');
+    if (!headerRoot) return;
+    const slot=headerRoot.querySelector('.status-slot');
+    if(!slot) return;
+    const {open}=isOpenNow();
+    const pill=document.createElement('span');
+    pill.className='pill'+(open ? '' : ' closed');
+    pill.textContent=open ? 'DELIVERY ABERTO!' : 'DELIVERY FECHADO!';
+    slot.innerHTML=''; slot.appendChild(pill);
+  }
+
+  // UI: trava finalização quando fechado + banner
+  function enforceCheckoutGuard(){
+    const {open}=isOpenNow();
+    const send=document.getElementById('btn-enviar-wa');
+    const go=document.getElementById('btn-ir-finalizar');
+
+    if (send){ send.disabled=!open; send.style.opacity=open?'':'0.6'; send.title=open?'':'Estamos fechados no momento'; }
+    if (go){   go.disabled=!open;   go.style.opacity=open?'':'0.6';   go.title=open?'':'Estamos fechados no momento'; }
+
+    const wrap=document.getElementById('tab-finalizar') || document.getElementById('carrinho-flutuante');
+    let banner=document.getElementById('closed-banner');
+    if (!open){
+      if (!banner && wrap){
+        banner=document.createElement('div');
+        banner.id='closed-banner';
+        banner.style.cssText='background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;padding:10px;margin:8px 0;font-weight:600';
+        banner.textContent='Estamos fechados agora. Faça seu pedido no horário de atendimento.';
+        wrap.insertBefore(banner, wrap.firstChild);
+      }
+    } else if (banner){ banner.remove(); }
+  }
+
+  // Garantia extra: intercepta cliques e barra a ação ao estar fechado
+  document.addEventListener('click', function(e){
+    const send = e.target.closest?.('#btn-enviar-wa');
+    const go   = e.target.closest?.('#btn-ir-finalizar');
+    if (send || go){
+      const {open,nextText}=isOpenNow();
+      if (!open){
+        e.preventDefault(); e.stopImmediatePropagation();
+        alert('Estamos fechados no momento. ' + (nextText || 'Volte no nosso horário de atendimento.'));
+      }
+    }
+  }, true); // capture: bloqueia antes de outros handlers
+
+  function tick(){
+    updateHeaderPill();
+    enforceCheckoutGuard();
+  }
+
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick);
+  else tick();
+
+  // Revalida a cada minuto
+  setInterval(tick, 60*1000);
+})();
+
+
 
     /* ====== NOTIFICAÇÕES ====== */
     const notifSlot = headerRoot.querySelector('.notif-slot');
