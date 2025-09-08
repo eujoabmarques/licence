@@ -1,62 +1,81 @@
 //<![CDATA[
 
+/* === SearchFab (robusto) ===================================== */
 (function(){
-  // Delegação: funciona mesmo se o Blogger reordenar o DOM
-  document.addEventListener('click', function(e){
-    const toggle = e.target.closest('.searchfab__toggle');
-    const close  = e.target.closest('.searchfab__close');
-    const fab    = e.target.closest('.searchfab');
+  function openBox(btn){
+    const boxId = btn.getAttribute('aria-controls');
+    if (!boxId) return;
+    const box  = document.getElementById(boxId);
+    const wrap = btn.closest('.searchfab');
+    if (!box || !wrap) return;
 
-    // Abrir/fechar via bolha
-    if (toggle){
-      const box = document.getElementById(toggle.getAttribute('aria-controls'));
-      const wrap = toggle.closest('.searchfab');
-      const isOpen = wrap.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      if (isOpen){
-        box.hidden = false;
-        // foca no input
-        const input = box.querySelector('.searchfab__input');
-        setTimeout(()=>{ try{ input && input.focus(); }catch(_){} }, 50);
-      } else {
-        box.hidden = true;
-      }
-      return;
+    const willOpen = !wrap.classList.contains('is-open');
+    wrap.classList.toggle('is-open', willOpen);
+    btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    box.hidden = !willOpen;
+
+    if (willOpen){
+      const input = box.querySelector('.searchfab__input');
+      setTimeout(()=>{ try{ input && input.focus(); }catch(_){} }, 30);
     }
+  }
 
-    // Botão X (fecha)
-    if (close){
-      const wrap = close.closest('.searchfab');
-      const box  = wrap.querySelector('.searchfab__box');
-      wrap.classList.remove('is-open');
-      wrap.querySelector('.searchfab__toggle')?.setAttribute('aria-expanded','false');
-      box.hidden = true;
-      return;
-    }
+  function closeBox(closeBtn){
+    const wrap = closeBtn.closest('.searchfab');
+    if (!wrap) return;
+    wrap.classList.remove('is-open');
+    const box = wrap.querySelector('.searchfab__box');
+    const tgl = wrap.querySelector('.searchfab__toggle');
+    if (box) box.hidden = true;
+    if (tgl) tgl.setAttribute('aria-expanded','false');
+  }
 
-    // Clique fora fecha (se aberto)
-    document.querySelectorAll('.searchfab.is-open').forEach(w=>{
-      if (!w.contains(e.target)){
-        const box = w.querySelector('.searchfab__box');
-        w.classList.remove('is-open');
-        w.querySelector('.searchfab__toggle')?.setAttribute('aria-expanded','false');
-        if (box) box.hidden = true;
+  function bindDirect(){
+    document.querySelectorAll('.searchfab__toggle').forEach(btn=>{
+      btn.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); openBox(btn); });
+    });
+    document.querySelectorAll('.searchfab__close').forEach(btn=>{
+      btn.addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); closeBox(btn); });
+    });
+  }
+
+  // Fallback: delegação em CAPTURE (pega cliques “comidos” por outros handlers)
+  function bindCapture(){
+    document.body.addEventListener('click', function(e){
+      const tgl = e.target.closest && e.target.closest('.searchfab__toggle');
+      if (tgl){ e.preventDefault(); openBox(tgl); return; }
+      const cls = e.target.closest && e.target.closest('.searchfab__close');
+      if (cls){ e.preventDefault(); closeBox(cls); return; }
+    }, true); // <- capture
+  }
+
+  // Fechar com ESC e clique-fora
+  function bindGlobal(){
+    document.addEventListener('keydown', e=>{
+      if (e.key === 'Escape'){
+        document.querySelectorAll('.searchfab.is-open').forEach(w=>{
+          w.classList.remove('is-open');
+          const box = w.querySelector('.searchfab__box'); if (box) box.hidden = true;
+          const tgl = w.querySelector('.searchfab__toggle'); if (tgl) tgl.setAttribute('aria-expanded','false');
+        });
       }
     });
-  });
 
-  // ESC fecha
-  document.addEventListener('keydown', function(e){
-    if (e.key === 'Escape'){
+    document.addEventListener('click', e=>{
       document.querySelectorAll('.searchfab.is-open').forEach(w=>{
-        const box = w.querySelector('.searchfab__box');
-        w.classList.remove('is-open');
-        w.querySelector('.searchfab__toggle')?.setAttribute('aria-expanded','false');
-        if (box) box.hidden = true;
+        if (!w.contains(e.target)){
+          w.classList.remove('is-open');
+          const box = w.querySelector('.searchfab__box'); if (box) box.hidden = true;
+          const tgl = w.querySelector('.searchfab__toggle'); if (tgl) tgl.setAttribute('aria-expanded','false');
+        }
       });
-    }
-  });
+    });
+  }
+
+  function init(){ bindDirect(); bindCapture(); bindGlobal(); console.log('[SearchFab] pronto'); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
+
 
 (function () {
   'use strict';
