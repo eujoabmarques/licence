@@ -117,88 +117,93 @@ button{font:inherit}
   border-radius:12px; box-shadow:var(--shadow); padding:12px; font-size:14px;
 }
 
-/* ====== PROD: SearchFab ====== */
+/* ====== SEARCHFAB (versão reforçada) ====== */
 :root{
   --ink:#111827; --paper:#fff; --line:#e5e7eb;
-  --fab-size: 38px;          /* tamanho da bolha (desktop e mobile) */
-  --pill-h: 48px;            /* altura da pílula/input */
-  --gap: 8px;                /* espaço entre bolha e pílula no desktop */
-  --shadow-1: 0 2px 10px rgba(0,0,0,.08);
-  --shadow-2: 0 12px 28px rgba(0,0,0,.10);
+  --fab-size:38px; --pill-h:48px; --gap:8px;
+  --shadow-1:0 2px 10px rgba(0,0,0,.08);
+  --shadow-2:0 12px 28px rgba(0,0,0,.10);
 }
 
-/* Acessibilidade: texto apenas para leitores */
-.sr-only{ position:absolute!important; width:1px!important; height:1px!important;
-  padding:0!important; margin:-1px!important; overflow:hidden!important;
-  clip:rect(0 0 0 0)!important; white-space:nowrap!important; border:0!important; }
+/* Texto apenas para leitores (compat amplo) */
+.sr-only{
+  position:absolute !important; width:1px !important; height:1px !important;
+  padding:0 !important; margin:-1px !important; overflow:hidden !important;
+  clip:rect(0 0 0 0) !important; clip-path:inset(50%) !important;
+  white-space:nowrap !important; border:0 !important;
+}
 
 /* Container fixo */
 .searchfab{
-  position: fixed; top:16px; right:16px;
-  z-index:2147483000;
-  display:inline-flex; align-items:center; gap:10px;
-  height: var(--pill-h);
+  position:fixed; top:16px; right:16px; z-index:2147483000;
+  display:inline-flex; align-items:center; gap:10px; height:var(--pill-h);
 }
 
-/* Bolha (lupa) */
-.searchfab__toggle{
+/* ===== Botão (lupa) ===== */
+.searchfab .searchfab__toggle{
+  -webkit-appearance:none !important; appearance:none !important;
   width:var(--fab-size); height:var(--fab-size);
-  border:1px solid var(--line); border-radius:9999px;
-  background:var(--paper); color:var(--ink);
+  border:1px solid var(--line) !important; border-radius:9999px !important;
+  background:var(--paper) !important; color:var(--ink) !important;
   display:inline-flex; align-items:center; justify-content:center;
-  cursor:pointer; box-shadow: var(--shadow-1);
+  cursor:pointer; box-shadow:var(--shadow-1);
+  padding:0 !important; line-height:1 !important;
 }
-.searchfab__toggle:hover{ filter:brightness(.98); }
-.searchfab__toggle:focus-visible{
-  outline:none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 14%, transparent), var(--shadow-1);
+.searchfab .searchfab__toggle:hover{ filter:brightness(.98); }
+.searchfab .searchfab__toggle:focus-visible{
+  outline:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--ink) 14%, transparent), var(--shadow-1);
 }
 
-/* Caixa / pílula */
-.searchfab__box[hidden]{ display:none !important; }
-.searchfab__form{
+/* ===== Caixa / pílula ===== */
+.searchfab .searchfab__box[hidden]{ display:none !important; }
+.searchfab .searchfab__form{
   position:relative; width:min(560px, calc(100vw - 120px));
   background:var(--paper); border:1px solid var(--line); border-radius:14px;
-  box-shadow: var(--shadow-2);
-}
-.searchfab__input{
-  width:100%; height:var(--pill-h);
-  padding:0 calc(var(--fab-size) + 6px) 0 52px; /* espaço X à dir e lupa à esq */
-  border:0; outline:0; background:transparent; color:var(--ink); font:inherit;
-}
-.searchfab__input::placeholder{
-  color: color-mix(in srgb, var(--ink) 45%, transparent);
-}
-.searchfab__input:focus-visible{
-  outline:none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 12%, transparent);
-  border-radius: inherit; /* mantém a forma */
+  box-shadow:var(--shadow-2);
 }
 
-/* Lupa interna e botão X */
-.searchfab__icon{
+/* Input “pílula” */
+.searchfab .searchfab__input{
+  -webkit-appearance:none !important; appearance:none !important;
+  width:100%; height:var(--pill-h);
+  padding:0 calc(var(--fab-size) + 6px) 0 56px !important; /* espaço da lupa */
+  border:0 !important; outline:0 !important; background:transparent !important;
+  color:var(--ink); font:inherit;
+  box-sizing:border-box; direction:ltr; text-indent:0 !important;
+}
+.searchfab .searchfab__input::placeholder{
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+.searchfab .searchfab__input:focus-visible{
+  outline:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius:inherit;
+}
+
+/* Lupa dentro do input + botão “X” */
+.searchfab .searchfab__icon{
   position:absolute; left:16px; top:50%; transform:translateY(-50%);
   color: color-mix(in srgb, var(--ink) 70%, transparent);
-  display:inline-flex;
+  display:inline-flex; pointer-events:none; z-index:1;
 }
-.searchfab__close{
+.searchfab .searchfab__close{
+  -webkit-appearance:none !important; appearance:none !important;
   position:absolute; right:6px; top:50%; transform:translateY(-50%);
   width:calc(var(--fab-size) - 6px); height:calc(var(--fab-size) - 6px);
-  border:0; border-radius:9999px; background:transparent;
+  border:0 !important; border-radius:9999px; background:transparent !important;
   color: color-mix(in srgb, var(--ink) 85%, transparent); cursor:pointer;
+  display:inline-grid; place-items:center;
 }
-.searchfab__close:hover{ background: color-mix(in srgb, var(--ink) 6%, var(--paper)); }
-.searchfab__close:focus-visible{
-  outline:none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 14%, transparent);
+.searchfab .searchfab__close:hover{ background: color-mix(in srgb, var(--ink) 6%, var(--paper)); }
+.searchfab .searchfab__close:focus-visible{
+  outline:none; box-shadow:0 0 0 3px color-mix(in srgb, var(--ink) 14%, transparent);
 }
 
 /* Desktop: pílula abre à esquerda da bolha */
 @media (min-width:1025px){
-  .searchfab__box{
+  .searchfab .searchfab__box{
     position:absolute; top:50%;
     right: calc(var(--fab-size) + var(--gap));
-    transform:translateY(-50%);
-    opacity:0; visibility:hidden;
+    transform:translateY(-50%); opacity:0; visibility:hidden;
     transition: opacity .18s ease, visibility .18s step-end, transform .18s ease;
     filter: drop-shadow(0 8px 24px rgba(0,0,0,.08));
   }
@@ -206,111 +211,26 @@ button{font:inherit}
     opacity:1; visibility:visible; transform:translateY(-50%);
   }
 }
-/* ==== FIX: evitar que o texto invada a lupa dentro do input ==== */
-.searchfab .searchfab__form { position: relative; }
 
-.searchfab .searchfab__icon{
-  position: absolute;
-  left: 16px; top: 50%; transform: translateY(-50%);
-  pointer-events: none;          /* clicar na lupa foca o input */
-  z-index: 1;
-}
-
-/* Espaço garantido para a lupa, mesmo se o tema tentar sobrescrever */
-.searchfab .searchfab__input{
-  box-sizing: border-box;
-  direction: ltr;                /* previne temas com RTL/indent */
-  text-indent: 0 !important;
-  padding-left: 56px !important;         /* espaço para a lupa */
-  padding-inline-start: 56px !important; /* reforço lógico (RTL/LTR) */
-}
-
-/* (opcional) se o placeholder estiver &#8220;escorregando&#8221; */
-.searchfab .searchfab__input::placeholder{
-  text-indent: 0 !important;
-}
-/* Compactar espaço entre a lupa e o texto do input */
-.searchfab{
-  --icon-size: 18px;   /* tamanho do SVG da lupa */
-  --icon-left: 12px;   /* distância da borda esquerda até a lupa */
-  --icon-gap: 8px;     /* espaço entre a lupa e o texto */
-}
-
-.searchfab .searchfab__icon{
-  left: var(--icon-left) !important;
-  width: var(--icon-size); height: var(--icon-size);
-  pointer-events: none;
-}
-
-.searchfab .searchfab__input{
-  /* padding calculado = posição da lupa + tamanho da lupa + gap */
-  padding-left: calc(var(--icon-left) + var(--icon-size) + var(--icon-gap)) !important;
-  padding-inline-start: calc(var(--icon-left) + var(--icon-size) + var(--icon-gap)) !important;
-  text-indent: 0 !important;
-  box-sizing: border-box;
-}
-
-        
-        
-/* Mobile: overlay full-screen quando aberto */
+/* Mobile: overlay full-screen */
 @media (max-width:1024px){
   .searchfab{ top:12px; right:12px; }
-
-  .searchfab__box{
+  .searchfab .searchfab__box{
     position:fixed; inset:0; padding:max(12px, env(safe-area-inset-top)) 12px 12px 12px;
     background:var(--paper); display:none; z-index:2147483000;
   }
   .searchfab.is-open .searchfab__box{ display:block; }
-
-  .searchfab__form{ width:100%; max-width:none; border-radius:14px; }
-  .searchfab__input{ height:52px; }
-  .searchfab__close{ right:10px; }
-  .searchfab__icon{ left:16px; }
+  .searchfab .searchfab__form{ width:100%; max-width:none; border-radius:14px; }
+  .searchfab .searchfab__input{ height:52px; }
+  .searchfab .searchfab__close{ right:10px; }
+  .searchfab .searchfab__icon{ left:16px; }
 }
 
 /* iOS: evitar zoom ao focar */
 @supports (-webkit-touch-callout: none){
-  .searchfab__input{ font-size:16px; }
-}
-/* FIX 1: tira o visual nativo do botão */
-.searchfab__toggle,
-.searchfab__close{
-  -webkit-appearance: none;
-  appearance: none;
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 9999px;
-  box-shadow: var(--shadow-1);
-  padding: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  .searchfab .searchfab__input{ font-size:16px; }
 }
 
-/* FIX 2: garante que o texto "Abrir pesquisa" fique escondido */
-.searchfab .sr-only{
-  position:absolute !important;
-  width:1px !important;
-  height:1px !important;
-  padding:0 !important;
-  margin:-1px !important;
-  overflow:hidden !important;
-  clip: rect(0 0 0 0) !important;
-  white-space:nowrap !important;
-  border:0 !important;
-}
-
-/* FIX 3: garante o espaçamento da lupa dentro do input */
-.searchfab .searchfab__input{
-  -webkit-appearance: none;
-  appearance: none;
-  padding-left: 56px !important;
-  padding-inline-start: 56px !important;
-  text-indent: 0 !important;
-  border: 0;
-  background: transparent;
-  outline: 0;
-}
 
 
 
