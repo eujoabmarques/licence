@@ -317,7 +317,7 @@ function ensureBairroUI(){
     wrap.id = 'entrega-bairro-wrap';
     wrap.style.margin = '12px 0 8px';
     wrap.innerHTML =
-      '<label for="cf-bairro" style="display:block;margin-bottom:6px;font-weight:600">Entrega ou Retirar</label>'+
+      '<label for="cf-bairro" style="display:block;margin-bottom:6px;font-weight:600">Bairro / Região</label>'+
       '<select id="cf-bairro" style="width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb">'+
       '  <option value="">Selecione...</option>'+
       '</select>';
