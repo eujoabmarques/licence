@@ -1,4 +1,59 @@
 //<![CDATA[
+
+(function () {
+  'use strict';
+
+  // Bloqueia menu do botão direito
+  const stop = (e) => { e.preventDefault(); e.stopImmediatePropagation?.(); return false; };
+  document.addEventListener('contextmenu', stop, { capture: true });
+
+  // Bloqueia F12, Ctrl/Cmd+U, Ctrl/Cmd+Shift+I/J/C/K e Cmd+Option+I/C (Safari)
+  window.addEventListener('keydown', function (e) {
+    const key = (e.key || '').toLowerCase();
+    const ctrlCmd = e.ctrlKey || e.metaKey;
+    const shift = e.shiftKey;
+    const alt = e.altKey;
+
+    const isF12 = e.key === 'F12' || e.code === 'F12' || e.keyCode === 123;
+
+    const block =
+      isF12 ||
+      (ctrlCmd && key === 'u') ||                                  // Ver código-fonte
+      (ctrlCmd && shift && ['i','j','c','k'].includes(key)) ||     // DevTools/Console
+      (ctrlCmd && alt && ['i','c'].includes(key));                 // Safari (⌘⌥I / ⌘⌥C)
+
+    if (block) stop(e);
+  }, { capture: true });
+
+  // [Opcional] Sinaliza quando DevTools parece aberto (detecção simples)
+  const devtoolsGuard = () => {
+    const THRESHOLD = 160; // px
+    const opened =
+      (window.outerWidth - window.innerWidth > THRESHOLD) ||
+      (window.outerHeight - window.innerHeight > THRESHOLD);
+
+    let overlay = document.getElementById('devtools-overlay');
+    if (opened) {
+      if (!overlay) {
+        overlay = Object.assign(document.createElement('div'), { id: 'devtools-overlay' });
+        Object.assign(overlay.style, {
+          position: 'fixed',
+          inset: '0',
+          background: 'rgba(0,0,0,0.15)',
+          backdropFilter: 'blur(2px)',
+          zIndex: '2147483647',
+          pointerEvents: 'none' // troque para 'all' se quiser bloquear cliques
+        });
+        document.body.appendChild(overlay);
+      }
+    } else if (overlay) {
+      overlay.remove();
+    }
+  };
+  setInterval(devtoolsGuard, 1000);
+})();
+
+
 (function(){
 const CONFIG = {
   PRODUCT_NAME: 'TemplateBras · Licença',
