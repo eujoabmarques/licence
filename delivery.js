@@ -25,8 +25,6 @@
     if (block) stop(e);
   }, { capture: true });
 
-
-  setInterval(devtoolsGuard, 1000);
 })();
 
 
