@@ -39,7 +39,7 @@
         Object.assign(overlay.style, {
           position: 'fixed',
           inset: '0',
-          background: 'rgba(0,0,0,0.15)',
+        /*   background: 'rgba(0,0,0,0.15)',*/
         /*  backdropFilter: 'blur(2px)' ,*/
           zIndex: '2147483647',
           pointerEvents: 'none' // troque para 'all' se quiser bloquear cliques
