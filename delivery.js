@@ -1,6 +1,6 @@
 //<![CDATA[
 
-/* === SearchFab (robusto) ===================================== */
+/* === SearchFab (bind robusto, sem tocar no CSS) =================== */
 (function(){
   function openBox(btn){
     const boxId = btn.getAttribute('aria-controls');
@@ -39,18 +39,18 @@
     });
   }
 
-  // Fallback: delegação em CAPTURE (pega cliques “comidos” por outros handlers)
+  // Fallback: delegação em CAPTURE (evita conflito com outros listeners)
   function bindCapture(){
     document.body.addEventListener('click', function(e){
       const tgl = e.target.closest && e.target.closest('.searchfab__toggle');
       if (tgl){ e.preventDefault(); openBox(tgl); return; }
       const cls = e.target.closest && e.target.closest('.searchfab__close');
       if (cls){ e.preventDefault(); closeBox(cls); return; }
-    }, true); // <- capture
+    }, true); // capture
   }
 
-  // Fechar com ESC e clique-fora
   function bindGlobal(){
+    // ESC fecha
     document.addEventListener('keydown', e=>{
       if (e.key === 'Escape'){
         document.querySelectorAll('.searchfab.is-open').forEach(w=>{
@@ -60,7 +60,7 @@
         });
       }
     });
-
+    // Clique-fora fecha
     document.addEventListener('click', e=>{
       document.querySelectorAll('.searchfab.is-open').forEach(w=>{
         if (!w.contains(e.target)){
