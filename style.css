@@ -69,6 +69,14 @@ button{font:inherit}
    =========================== */
 .main{min-width:0}
 #Header1{padding: 0;}
+/* Logo do cabeçalho */
+#Header1 .brand { margin:0; }
+#Header1 .brand img{
+  max-height: 40px;   /* combina com displayHeight=40 */
+  height: auto;
+  width: auto;
+  border-radius: 0;   /* sem cantos arredondados no logo */
+}
 /* Header (duas linhas: brand+search em cima | abas embaixo) */
 .header{
   position: sticky;
