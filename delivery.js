@@ -561,7 +561,7 @@ function atualizarResumoFinalizar(){
     }
   }
   partes.push('Total: <strong>'+fmt(total)+'</strong>');
-  el.innerHTML = partes.join(' &nbsp;•&nbsp; ');
+  el.innerHTML = partes.join(' • ');
 }
 function atualizarCarrinho(){
   save();
