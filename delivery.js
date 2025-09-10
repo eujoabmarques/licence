@@ -561,7 +561,7 @@ function atualizarResumoFinalizar(){
     }
   }
   partes.push('Total: <strong>'+fmt(total)+'</strong>');
-  el.innerHTML = partes.join(' • ');
+  el.innerHTML = partes.map(p => `<span class="resumo-item">${p}</span>`).join('');
 }
 function atualizarCarrinho(){
   save();
