@@ -303,6 +303,138 @@ function getDeliveryFeesFromWidget(){
   return parseFeesString(item && item.value);
 }
 
+
+
+// ====== CUPONS ===================================================
+var CUPONS_DISPONIVEIS = [];     // [{code, type:'percent'|'fixed', value}]
+var CUPOM_ATIVO = null;
+var CUPOM_KEY = 'cupomAtivo';
+
+function __normCup(s){
+  return String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'')
+    .toLowerCase().replace(/\s+/g,'');
+}
+function parseCouponsString(s){
+  s = String(s||'').trim(); if (!s) return [];
+  const tokens = s.split(/[,;\n]+/);
+  const out = [];
+  tokens.forEach(raw0=>{
+    const raw = String(raw0||'').trim(); if (!raw) return;
+    let code = raw, type='percent', value=0;
+
+    // Formatos aceitos (mistos):
+    //   CODIGO:10%   | CODIGO = 10% | CODIGO 10%
+    //   CODIGO:R$5   | CODIGO = R$5 | CODIGO 5reais
+    //   CODIGO10     (sufixo numérico => %)
+    let m = raw.match(/^(.+?)[\s:=\-]+([\%\-\+R\$\s]*[0-9]+(?:[.,][0-9]{1,2})?)$/i);
+    if (m){
+      code = m[1].trim();
+      const amt = m[2].trim();
+      if (/R?\$|reais|fix/i.test(amt)) type='fixed';
+      if (/%/.test(amt)) type='percent';
+      value = parseFloat(amt.replace(/[^\d,.-]/g,'').replace(',', '.'))||0;
+    } else {
+      const m2 = raw.match(/^(.+?)(\d{1,3})$/); // CODIGO10 -> 10%
+      code  = (m2 ? m2[1] : raw).trim();
+      value = m2 ? parseInt(m2[2],10) : 0;
+      type  = value>0 ? 'percent' : 'percent';
+    }
+    if (!code) return;
+    if (value <= 0) value = 10; // fallback: 10%
+    out.push({ code, type, value:Number(value) });
+  });
+  return out;
+}
+function getCouponsFromWidget(){
+  var anchors = _getConfigAnchors(); // já existe no seu código
+  var item = null;
+  for (var i=0;i<anchors.length;i++){
+    if (/cupom|cupons|desconto/.test(anchors[i].lower)){ item = anchors[i]; break; }
+  }
+  return parseCouponsString(item && item.value);
+}
+function findCoupon(code){
+  const c = __normCup(code);
+  for (var i=0;i<CUPONS_DISPONIVEIS.length;i++){
+    if (__normCup(CUPONS_DISPONIVEIS[i].code) === c) return CUPONS_DISPONIVEIS[i];
+  }
+  return null;
+}
+function setActiveCoupon(obj){
+  CUPOM_ATIVO = obj ? { code: obj.code, type: obj.type, value: Number(obj.value)||0 } : null;
+  try{ localStorage.setItem(CUPOM_KEY, JSON.stringify(CUPOM_ATIVO||null)); }catch(_){}
+  atualizarResumoFinalizar(); // recalcula total
+}
+function loadActiveCoupon(){
+  try{
+    const s = localStorage.getItem(CUPOM_KEY);
+    if (s){ const obj = JSON.parse(s); if (obj && obj.code) CUPOM_ATIVO = obj; }
+  }catch(_){}
+}
+function calcDiscount(subtotal){
+  if (!CUPOM_ATIVO) return 0;
+  var d = 0;
+  if (CUPOM_ATIVO.type === 'percent') d = subtotal * (Number(CUPOM_ATIVO.value||0)/100);
+  else d = Number(CUPOM_ATIVO.value||0);
+  if (d < 0) d = 0;
+  if (d > subtotal) d = subtotal;
+  return d;
+}
+function ensureCupomUI(){
+  var tab = document.getElementById('tab-finalizar') || document.getElementById('carrinho-flutuante') || document.body;
+  if (!tab) return;
+  if (document.getElementById('cupom-wrap')) return;
+
+  var wrap = document.createElement('div');
+  wrap.id = 'cupom-wrap';
+  wrap.style.cssText = 'display:flex;gap:8px;align-items:center;margin:10px 0;';
+  wrap.innerHTML =
+    '<input id="cf-cupom" placeholder="Cupom de desconto" style="flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:8px" autocomplete="off">'+
+    '<button id="btn-aplicar-cupom" style="border:0;background:#dcfce7;color:#166534;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:700">Aplicar</button>'+
+    '<button id="btn-remover-cupom" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:8px 10px;cursor:pointer;display:none">Remover</button>'+
+    '<div id="cupom-hint" class="muted" style="font-size:12px;margin-left:8px"></div>';
+
+  var resumo = document.getElementById('cart-resumo');
+  if (resumo && resumo.parentNode) resumo.parentNode.insertBefore(wrap, resumo);
+  else tab.insertBefore(wrap, tab.firstChild);
+
+  var input = document.getElementById('cf-cupom');
+  var btnA  = document.getElementById('btn-aplicar-cupom');
+  var btnR  = document.getElementById('btn-remover-cupom');
+  var hint  = document.getElementById('cupom-hint');
+
+  function refreshUI(){
+    if (CUPOM_ATIVO){
+      input.value = CUPOM_ATIVO.code;
+      input.disabled = true;
+      btnA.style.display = 'none';
+      btnR.style.display = '';
+      hint.textContent = CUPOM_ATIVO.type==='percent'
+        ? ('Aplicado: ' + Number(CUPOM_ATIVO.value||0) + '%')
+        : ('Aplicado: -' + fmt(Number(CUPOM_ATIVO.value||0)));
+    } else {
+      input.disabled = false;
+      btnA.style.display = '';
+      btnR.style.display = 'none';
+      hint.textContent = '';
+    }
+  }
+
+  btnA.addEventListener('click', function(){
+    var code = (input.value||'').trim();
+    if (!code){ alert('Digite um cupom.'); input.focus(); return; }
+    var c = findCoupon(code);
+    if (!c){ alert('Cupom inválido.'); input.focus(); return; }
+    setActiveCoupon(c); refreshUI();
+  });
+  btnR.addEventListener('click', function(){ setActiveCoupon(null); refreshUI(); });
+
+  if (CUPOM_ATIVO && CUPOM_ATIVO.code) input.value = CUPOM_ATIVO.code;
+  refreshUI();
+}
+
+
+  
 /* ========= UI da Entrega (aba Finalizar) ========= */
 function ensureBairroUI(){
   if (!TAXAS_ENTREGA || !TAXAS_ENTREGA.length) return; // nada a montar
@@ -406,23 +538,29 @@ function atualizarResumoFinalizar(){
   var subtotal = 0, qtd = 0;
   for (var i=0;i<carrinho.length;i++){
     subtotal += Number(carrinho[i].preco||0) * Number(carrinho[i].quantidade||1);
-    qtd += Number(carrinho[i].quantidade||0);
+    qtd      += Number(carrinho[i].quantidade||0);
   }
   var sel = getBairroSelecionado();
-  var el = document.getElementById('cart-resumo');
-  if (!el) return;
+  var el  = document.getElementById('cart-resumo'); if (!el) return;
+
+  var desconto = calcDiscount(subtotal);
+  var total = subtotal - desconto + Number(sel.taxa||0);
+
   var partes = [
     'Itens: <strong>'+qtd+'</strong>',
     'Subtotal: <strong>'+fmt(subtotal)+'</strong>'
   ];
-  if (sel.bairro) {
+  if (CUPOM_ATIVO && desconto>0){
+    partes.push('Desconto ('+escapeHTML(CUPOM_ATIVO.code)+'): <strong>-'+fmt(desconto)+'</strong>');
+  }
+  if (sel.bairro){
     if (sel.bairro === 'Retirar'){
       partes.push('Retirada no balcão: <strong>sem taxa</strong>');
     } else {
       partes.push('Entrega ('+escapeHTML(sel.bairro)+'): <strong>'+fmt(sel.taxa)+'</strong>');
     }
   }
-  partes.push('Total: <strong>'+fmt(subtotal + Number(sel.taxa||0))+'</strong>');
+  partes.push('Total: <strong>'+fmt(total)+'</strong>');
   el.innerHTML = partes.join(' &nbsp;•&nbsp; ');
 }
 function atualizarCarrinho(){
@@ -578,27 +716,32 @@ function enviarPedido(){
     return;
   }
 
-  var msg = "Olá, quero fazer o seguinte pedido:\n\n";
-  var total = 0;
+  var subtotal = 0, msg = "Olá, quero fazer o seguinte pedido:\n\n";
   for (var i=0;i<carrinho.length;i++){
-    var it = carrinho[i];
-    msg += '• '+it.nome+' - '+fmt(it.preco)+' x '+it.quantidade+'\n';
+    var it = carrinho[i], q = Number(it.quantidade||1), pr = Number(it.preco||0);
+    msg += '• '+it.nome+' - '+fmt(pr)+' x '+q+'\n';
     if (it.opcoes && it.opcoes.length){ for (var k=0;k<it.opcoes.length;k++) msg += '   - '+it.opcoes[k]+'\n'; }
     if (it.obs){ msg += '   - Obs: '+it.obs+'\n'; }
-    total += Number(it.preco||0) * Number(it.quantidade||1);
+    subtotal += pr*q;
+  }
+
+  var desconto = calcDiscount(subtotal);
+  if (CUPOM_ATIVO && desconto>0){
+    var cupTxt = (CUPOM_ATIVO.type==='percent' ? (CUPOM_ATIVO.value+'%') : fmt(CUPOM_ATIVO.value));
+    msg += '\nDesconto ('+CUPOM_ATIVO.code+'): -'+ (CUPOM_ATIVO.type==='percent' ? fmt(desconto) : fmt(desconto)) + ' ('+cupTxt+')\n';
   }
 
   if (dados.bairro){
     if (dados.bairro === 'Retirar'){
-      msg += '\nRetirada no balcão (sem taxa)\n';
-      // total não muda
+      msg += 'Retirada no balcão (sem taxa)\n';
     } else {
-      msg += '\nEntrega ('+dados.bairro+'): '+fmt(dados.taxaEntrega||0)+'\n';
-      total += Number(dados.taxaEntrega||0);
+      msg += 'Entrega ('+dados.bairro+'): '+fmt(dados.taxaEntrega||0)+'\n';
     }
   }
 
+  var total = subtotal - desconto + Number(dados.taxaEntrega||0);
   msg += '\nTotal: '+fmt(total)+'\n\n';
+
   msg += 'Dados para entrega:\n';
   msg += '• Nome: '+dados.nome+'\n';
   if (dados.email)   msg += '• E-mail: '+dados.email+'\n';
@@ -610,6 +753,7 @@ function enviarPedido(){
     if (dados.bairro)   msg += '• Entrega: '+dados.bairro+'\n';
   }
   if (dados.pagto)    msg += '• Pagamento: '+dados.pagto+'\n';
+  if (CUPOM_ATIVO && CUPOM_ATIVO.code) msg += '• Cupom usado: '+CUPOM_ATIVO.code+'\n';
 
   var numero = getWhatsNumberFromWidget() || "5582991090858";
   window.open('https://wa.me/'+numero+'?text='+encodeURIComponent(msg), '_blank');
@@ -657,6 +801,10 @@ document.addEventListener('DOMContentLoaded', function(){
   // Carrega taxas do widget e monta UI da entrega
   TAXAS_ENTREGA = getDeliveryFeesFromWidget() || [];
   ensureBairroUI();
+  CUPONS_DISPONIVEIS = getCouponsFromWidget() || [];
+  loadActiveCoupon();
+  ensureCupomUI();
+  atualizarResumoFinalizar();
 
   // tabs
   var tbs = document.querySelectorAll('#cart-tabs .tab-btn');
