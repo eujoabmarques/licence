@@ -833,7 +833,53 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }, true);
 
-  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); }
+
+  // --- BANNER GLOBAL "DELIVERY FECHADO" ---
+function updateGlobalClosedBanner(){
+  // calcula estado atual
+  const { open, nextText } = isOpenNow();
+
+  // só mostra se soubermos que está FECHADO (open === false).
+  // Se não houver tabela .open-hours (open === null), não exibe nada.
+  if (open !== false){
+    const old = document.getElementById('delivery-alert');
+    if (old) old.remove();
+    return;
+  }
+
+  // cria (uma vez) ou atualiza o banner
+  let bar = document.getElementById('delivery-alert');
+  if (!bar){
+    bar = document.createElement('div');
+    bar.id = 'delivery-alert';
+    bar.setAttribute('role','status');
+    bar.setAttribute('aria-live','polite');
+    bar.style.cssText = [
+      'position:sticky','top:0','z-index:9999',
+      'background:#fef2f2','color:#7f1d1d',
+      'border-bottom:1px solid #fecaca',
+      'padding:10px 12px','text-align:center',
+      'font-weight:700','font-size:14px'
+    ].join(';');
+
+    // tenta inserir logo abaixo do header; se não houver, no topo do <body>
+    const headerRoot =
+      document.querySelector('b\\:section#header') ||
+      document.querySelector('.header.section') ||
+      document.querySelector('.header');
+    if (headerRoot && headerRoot.parentNode){
+      headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
+    } else {
+      document.body.insertBefore(bar, document.body.firstChild);
+    }
+  }
+
+  bar.textContent = 'Estamos fechados agora. ' + (nextText ? nextText : 'Volte no nosso horário de atendimento.');
+}
+
+
+  
+  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner();}
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick);
   else tick();
   setInterval(tick, 60*1000);
