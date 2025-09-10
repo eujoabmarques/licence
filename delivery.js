@@ -856,7 +856,7 @@ function updateGlobalClosedBanner(){
     bar.setAttribute('aria-live','polite');
     bar.style.cssText = [
       'position:sticky','top:0','z-index:9999',
-      'background:#fef2f2','color:#7f1d1d',
+      'background:#ff0000','color:#fff',
       'border-bottom:1px solid #fecaca',
       'padding:10px 12px','text-align:center',
       'font-weight:700','font-size:14px'
