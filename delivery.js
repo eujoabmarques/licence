@@ -387,12 +387,12 @@ function ensureCupomUI(){
 
   var wrap = document.createElement('div');
   wrap.id = 'cupom-wrap';
-  wrap.style.cssText = 'display:flex;gap:8px;align-items:center;margin:10px 0;';
+  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0;';
   wrap.innerHTML =
     '<input id="cf-cupom" placeholder="Cupom de desconto" style="flex:1;padding:8px;border:1px solid #e5e7eb;border-radius:8px" autocomplete="off">'+
     '<button id="btn-aplicar-cupom" style="border:0;background:#dcfce7;color:#166534;border-radius:8px;padding:8px 10px;cursor:pointer;font-weight:700">Aplicar</button>'+
     '<button id="btn-remover-cupom" style="border:0;background:#fee2e2;color:#991b1b;border-radius:8px;padding:8px 10px;cursor:pointer;display:none">Remover</button>'+
-    '<div id="cupom-hint" class="muted" style="font-size:12px;margin-left:8px"></div>';
+    '<div id="cupom-hint" class="muted" style="font-size:12px;flex:0 0 100%;margin:6px 0 0 0;display:none"></div>';
 
   var resumo = document.getElementById('cart-resumo');
   if (resumo && resumo.parentNode) resumo.parentNode.insertBefore(wrap, resumo);
@@ -403,22 +403,24 @@ function ensureCupomUI(){
   var btnR  = document.getElementById('btn-remover-cupom');
   var hint  = document.getElementById('cupom-hint');
 
-  function refreshUI(){
-    if (CUPOM_ATIVO){
-      input.value = CUPOM_ATIVO.code;
-      input.disabled = true;
-      btnA.style.display = 'none';
-      btnR.style.display = '';
-      hint.textContent = CUPOM_ATIVO.type==='percent'
-        ? ('Aplicado: ' + Number(CUPOM_ATIVO.value||0) + '%')
-        : ('Aplicado: -' + fmt(Number(CUPOM_ATIVO.value||0)));
-    } else {
-      input.disabled = false;
-      btnA.style.display = '';
-      btnR.style.display = 'none';
-      hint.textContent = '';
-    }
+function refreshUI(){
+  if (CUPOM_ATIVO){
+    input.value = CUPOM_ATIVO.code;
+    input.disabled = true;
+    btnA.style.display = 'none';
+    btnR.style.display = '';
+    hint.textContent = CUPOM_ATIVO.type==='percent'
+      ? ('Aplicado: ' + Number(CUPOM_ATIVO.value||0) + '%')
+      : ('Aplicado: -' + fmt(Number(CUPOM_ATIVO.value||0)));
+    hint.style.display = 'block';            // << mostra na segunda linha
+  } else {
+    input.disabled = false;
+    btnA.style.display = '';
+    btnR.style.display = 'none';
+    hint.textContent = '';
+    hint.style.display = 'none';             // << esconde quando vazio
   }
+}
 
   btnA.addEventListener('click', function(){
     var code = (input.value||'').trim();
