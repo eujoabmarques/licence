@@ -201,10 +201,20 @@ LQIDAQAB
       const tok=readToken();    if(CONFIG.DEBUG) console.log('[lic] token=', tok ? (tok.slice(0,32)+'...'):'(não encontrado)', 'widget=', CONFIG.WIDGET_ID);
       if(!tok){ showBlocker('Token não encontrado no widget (item "Licença").'); return; }
       await verifyToken(tok); hideBlocker();
-    }catch(e){
-      if(CONFIG.DEBUG) console.warn('[lic] Falha:', e && e.message ? e.message : e);
-      showBlocker('Licença inválida, expirada ou revogada.');
-    }
+}catch(e){
+  const msgRaw = String(e && e.message || e);
+  if (CONFIG.DEBUG) console.warn('[lic] Falha:', msgRaw);
+
+  let msg = 'Licença inválida, expirada ou revogada.';
+  if (!isSecureContext || !crypto || !crypto.subtle) {
+    msg = 'HTTPS obrigatório para validar a licença. Ative HTTPS (Configurações → HTTPS) e aguarde o certificado.';
+  } else if (/blogId n[oã]o confere/i.test(msgRaw) || /emissor inv[áa]lido|iss/i.test(msgRaw)) {
+    msg = 'Este token pertence a outro blog. Gere um novo token para este blog.';
+  } else if (/Token n[aã]o encontrado/i.test(msgRaw)) {
+    msg = 'Token não encontrado no widget. Verifique o LinkList com o item “Licença”.';
+  }
+  showBlocker(msg);
+}
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
