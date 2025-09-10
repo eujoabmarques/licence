@@ -89,7 +89,7 @@
 
 (function(){
 const CONFIG = {
-  PRODUCT_NAME: 'TemplateBras · Licença',
+  PRODUCT_NAME: 'EnviaAgora · Licença',
   ISSUER_BLOG_ID: '3250349446996015558',
   WIDGET_ID: 'LinkList6',
   WIDGET_LICENSE_LABEL: 'Licença',
