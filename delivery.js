@@ -945,17 +945,6 @@ function updateGlobalClosedBanner(){
   bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
 }
 
-// ================================================================
-// Substitua sua função tick() por esta (ou acrescente a chamada):
-// ================================================================
-function tick(){
-  updateHeaderPill();
-  enforceCheckoutGuard();
-  updateGlobalClosedBanner(); // mantém o banner sincronizado
-}
-
-
-
 
   
 
