@@ -922,7 +922,7 @@ function updateGlobalClosedBanner(){
     bar.setAttribute('role','status');
     bar.setAttribute('aria-live','polite');
     bar.style.cssText = [
-      'position:sticky','top:0','z-index:9999',
+      'position:sticky','top:0','z-index:9998',
       'background:#ff0000',            // sua cor de fundo
       'color:#fff',                     // cor do texto
       'border-bottom:1px solid #fecaca',// borda (ajuste se quiser)
