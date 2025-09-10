@@ -518,7 +518,23 @@ button{font:inherit}
 #tab-finalizar{padding:14px 16px;gap:10px;overflow:auto}
 #cart-form .row{display:grid;gap:8px}
 #cart-form label{font-weight:700;font-size:14px}
-#cart-resumo{border-top:1px solid var(--ring);padding-top:8px;color:var(--muted);font-size:14px}
+#cart-resumo{border-top:1px solid var(--ring);padding-top:8px;color:var(--muted);font-size:14px;white-space: normal; overflow-wrap: anywhere; word-break: break-word;}
+#cart-resumo{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 10px;         /* espaço entre itens */
+  align-items:center;
+}
+#cart-resumo .resumo-item{
+  display:inline-flex;
+  align-items:center;
+  overflow-wrap:anywhere;
+}
+#cart-resumo .resumo-item + .resumo-item::before{
+  content:"•";
+  margin:0 8px;
+  opacity:.6;
+}
 #btn-enviar-wa{background:var(--ok);color:#fff;border:0;border-radius:12px;height:44px;font-weight:900;cursor:pointer}
 #btn-ir-finalizar{background:var(--ok);color:#fff;border:0;border-radius:12px;height:44px;font-weight:900;cursor:pointer}
 
