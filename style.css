@@ -68,7 +68,7 @@ button{font:inherit}
    HEADER / STATUS / NOTIF
    =========================== */
 .main{min-width:0}
-
+#Header1{padding: 0;}
 /* Header (duas linhas: brand+search em cima | abas embaixo) */
 .header{
   position: sticky;
