@@ -762,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const key=todayKey(now); const slot=sched[key];
     const mins=now.getHours()*60+now.getMinutes();
     if (slot && !slot.overnight && mins < slot.start){
-      return 'Abre hoje às ' + fmtHM(slot.start);
+      return 'Abrimos às ' + fmtHM(slot.start);
     }
     for (let i=1;i<=7;i++){
       const d=new Date(now); d.setDate(now.getDate()+i);
