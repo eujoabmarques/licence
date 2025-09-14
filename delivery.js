@@ -898,10 +898,11 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ---------- parser com múltiplos intervalos ---------- */
-  // Lê "07:00 às 11:00; 12:00 às 18:00" (também funciona com vírgula ou " e ")
+  // Lê "07:00 às 11:00; 12:00 às 18:00" (funciona com ; , ou " e ")
+  // Aceita "às" (com acento) ou "as".
   function parseAllRanges(txt){
     const out = [];
-    const re = /(\d{1,2}:\d{2})\s*às\s*(\d{1,2}:\d{2})/gi;
+    const re = /(\d{1,2}:\d{2})\s*(?:às|as)\s*(\d{1,2}:\d{2})/gi;
     let m;
     while ((m = re.exec(String(txt||'')))){
       const a = parseTime(m[1]), b = parseTime(m[2]);
@@ -922,10 +923,9 @@ document.addEventListener('DOMContentLoaded', function(){
       const low = norm(txt);
       if (!map[day]) map[day] = []; // acumula por dia
 
-      // fechado: vazio, "Fechado", traço, etc.
+      // fechado explícito
       if(!txt || /fechado|—|^-+$/.test(low)){ return; }
 
-      // coleta todos os intervalos presentes na célula
       const ranges = parseAllRanges(txt);
       if (ranges.length) map[day].push(...ranges);
     });
@@ -1059,6 +1059,24 @@ document.addEventListener('DOMContentLoaded', function(){
     } else if (banner){ banner.remove(); }
   }
 
+  // --- posicionamento da barra verde abaixo do header ---
+  function __getHeaderOffsetPx(){
+    const headerRoot =
+      document.querySelector('b\\:section#header') ||
+      document.querySelector('.header.section') ||
+      document.querySelector('.header');
+    if (!headerRoot) return 0;
+
+    const cs = getComputedStyle(headerRoot);
+    const pos = cs.position;
+    const r = headerRoot.getBoundingClientRect();
+
+    if (pos === 'fixed' || pos === 'sticky' || r.top <= 0) {
+      return Math.max(0, r.bottom);
+    }
+    return 0;
+  }
+
   // ---------- Banner global: vermelho (fechado) / verde FIXO (aberto) ----------
   function updateGlobalClosedBanner(){
     const st = _statusNow();
@@ -1070,13 +1088,15 @@ document.addEventListener('DOMContentLoaded', function(){
     if (st.open === null) return;
 
     if (st.open === true){
-      // BANNER VERDE (FIXO, não rola com a página) no MESMO local visual (topo)
+      // BANNER VERDE FIXO (não rola com a página) abaixo do header
       const bar = document.createElement('div');
       bar.id = 'delivery-open';
       bar.setAttribute('role','status');
       bar.setAttribute('aria-live','polite');
       bar.style.cssText = [
-        'position:fixed','top:0','left:0','right:0','z-index:9999',
+        'position:fixed',
+        'left:0','right:0',
+        'z-index:2147483000',
         'background:#16a34a','color:#fff',
         'border-bottom:1px solid #86efac',
         'padding:10px 12px','text-align:center',
@@ -1084,6 +1104,11 @@ document.addEventListener('DOMContentLoaded', function(){
       ].join(';');
       bar.textContent = 'Estamos abertos agora. Fecha às ' + fmtHM(st.closeMins) + '.';
       document.body.appendChild(bar);
+
+      function positionOpenBar(){ bar.style.top = __getHeaderOffsetPx() + 'px'; }
+      positionOpenBar();
+      window.addEventListener('scroll', positionOpenBar, {passive:true});
+      window.addEventListener('resize', positionOpenBar);
       return;
     }
 
@@ -1133,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }, true);
 
-  // Atualiza agora e a cada minuto (com guarda p/ não duplicar)
+  // Atualiza agora e a cada minuto (evita duplicar)
   function __tick(){ try{ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner(); }catch(_){ }}
   __tick();
   if (!window.__ENVIAAGORA_STATUS_TICK__){
