@@ -992,127 +992,106 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     }
   }, true);
-})();
 
-
-
-
-
-
-  
-// ================================================================
-// Helpers: próxima abertura (DIA + HORÁRIO)
-// Requer: getSchedule(), todayKey(), fmtHM() já definidos no seu STATUS
-// ================================================================
-function displayDayName(key){
-  const map = {
-    domingo:'Domingo', segunda:'Segunda', terca:'Terça',
-    quarta:'Quarta',  quinta:'Quinta',   sexta:'Sexta',
-    sabado:'Sábado'
-  };
-  return map[key] || (key.charAt(0).toUpperCase()+key.slice(1));
-}
-
-function getNextOpenInfo(){
-  const sched = getSchedule();
-  if (!sched) return null;
-
-  const now = new Date();
-  const nowMins = now.getHours()*60 + now.getMinutes();
-  const today = todayKey(now);
-  const slot  = sched[today];
-
-  function buildInfo(dayKey, dayOffset, startMins){
-    return {
-      isToday: dayOffset===0,
-      isTomorrow: dayOffset===1,
-      dayKey,
-      dayName: displayDayName(dayKey),
-      timeText: fmtHM(startMins)
+  // ================================================================
+  // Helpers: próxima abertura (DIA + HORÁRIO)
+  // ================================================================
+  function displayDayName(key){
+    const map = {
+      domingo:'Domingo', segunda:'Segunda', terca:'Terça',
+      quarta:'Quarta',  quinta:'Quinta',   sexta:'Sexta',
+      sabado:'Sábado'
     };
+    return map[key] || (key.charAt(0).toUpperCase()+key.slice(1));
   }
 
-  // tentar hoje
-  if (slot){
-    if (!slot.overnight){
-      if (nowMins < slot.start) return buildInfo(today, 0, slot.start);
-    } else {
-      // janela cruza a meia-noite (ex: 20:00–02:00). Se estamos fechados,
-      // a próxima abertura é "hoje" às slot.start.
-      if (nowMins <= slot.end || (nowMins > slot.end && nowMins < slot.start)){
-        return buildInfo(today, 0, slot.start);
+  function getNextOpenInfo(){
+    const sched = getSchedule();
+    if (!sched) return null;
+
+    const now = new Date();
+    const nowMins = now.getHours()*60 + now.getMinutes();
+    const today = todayKey(now);
+    const slot  = sched[today];
+
+    function buildInfo(dayKey, dayOffset, startMins){
+      return {
+        isToday: dayOffset===0,
+        isTomorrow: dayOffset===1,
+        dayKey,
+        dayName: displayDayName(dayKey),
+        timeText: fmtHM(startMins)
+      };
+    }
+
+    // hoje
+    if (slot){
+      if (!slot.overnight){
+        if (nowMins < slot.start) return buildInfo(today, 0, slot.start);
+      } else {
+        if (nowMins <= slot.end || (nowMins > slot.end && nowMins < slot.start)){
+          return buildInfo(today, 0, slot.start);
+        }
       }
     }
-  }
 
-  // procurar nos próximos dias
-  for (let i=1;i<=7;i++){
-    const d = new Date(now); d.setDate(now.getDate()+i);
-    const k = todayKey(d);
-    const s = sched[k];
-    if (s) return buildInfo(k, i, s.start);
-  }
-  return null;
-}
-
-// ================================================================
-// --- BANNER GLOBAL "DELIVERY FECHADO" (cores personalizadas) ---
-// Substitui a sua versão antiga.
-// ================================================================
-function updateGlobalClosedBanner(){
-  const { open } = isOpenNow();
-
-  // Se aberto (true) ou indeterminado (null), remover banner
-  if (open !== false){
-    document.getElementById('delivery-alert')?.remove();
-    return;
-  }
-
-  const info = getNextOpenInfo(); // {dayName, timeText, isToday, isTomorrow}
-  let whenText = 'em breve.';
-  if (info){
-    const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
-    // se quiser tirar o "na", troque por "Abrimos " + info.dayName...
-    whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
-  }
-
-  // cria / atualiza o banner
-  let bar = document.getElementById('delivery-alert');
-  if (!bar){
-    bar = document.createElement('div');
-    bar.id = 'delivery-alert';
-    bar.setAttribute('role','status');
-    bar.setAttribute('aria-live','polite');
-    bar.style.cssText = [
-      'position:sticky','top:0','z-index:9998',
-      'background:#ff0000',            // sua cor de fundo
-      'color:#fff',                     // cor do texto
-      'border-bottom:1px solid #fecaca',// borda (ajuste se quiser)
-      'padding:10px 12px','text-align:center',
-      'font-weight:700','font-size:14px'
-    ].join(';');
-
-    // insere logo abaixo do header; fallback: topo do body
-    const headerRoot =
-      document.querySelector('b\\:section#header') ||
-      document.querySelector('.header.section') ||
-      document.querySelector('.header');
-    if (headerRoot && headerRoot.parentNode){
-      headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
-    } else {
-      document.body.insertBefore(bar, document.body.firstChild);
+    // próximos dias
+    for (let i=1;i<=7;i++){
+      const d = new Date(now); d.setDate(now.getDate()+i);
+      const k = todayKey(d);
+      const s = sched[k];
+      if (s) return buildInfo(k, i, s.start);
     }
+    return null;
   }
 
-  bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
-}
+  // --- BANNER GLOBAL "DELIVERY FECHADO" (vermelho) ---
+  function updateGlobalClosedBanner(){
+    const { open } = isOpenNow();
 
+    if (open !== false){
+      document.getElementById('delivery-alert')?.remove();
+      return;
+    }
 
-  
+    const info = getNextOpenInfo();
+    let whenText = 'em breve.';
+    if (info){
+      const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
+      whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
+    }
 
+    let bar = document.getElementById('delivery-alert');
+    if (!bar){
+      bar = document.createElement('div');
+      bar.id = 'delivery-alert';
+      bar.setAttribute('role','status');
+      bar.setAttribute('aria-live','polite');
+      bar.style.cssText = [
+        'position:sticky','top:0','z-index:9998',
+        'background:#ff0000','color:#fff',
+        'border-bottom:1px solid #fecaca',
+        'padding:10px 12px','text-align:center',
+        'font-weight:700','font-size:14px'
+      ].join(';');
 
-  
-  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner();}
+      const headerRoot =
+        document.querySelector('b\\:section#header') ||
+        document.querySelector('.header.section') ||
+        document.querySelector('.header');
+
+      if (headerRoot && headerRoot.parentNode){
+        headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
+      } else {
+        document.body.insertBefore(bar, document.body.firstChild);
+      }
+    }
+
+    bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
+  }
+
+  // tick igual ao original
+  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner(); }
   if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick);
   else tick();
   setInterval(tick, 60*1000);
