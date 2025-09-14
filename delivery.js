@@ -983,14 +983,25 @@ document.addEventListener('DOMContentLoaded', function(){
     return { open, nextOpen, closeMins };
   }
 
-  function calcNextOpenText(){
-    const st = _statusNow();
-    if (!st || !st.nextOpen) return '';
-    const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
-    const dayName = map[st.nextOpen.dayKey] || st.nextOpen.dayKey;
-    const hint = st.nextOpen.offset === 1 ? ' (amanhã)' : (st.nextOpen.offset ? '' : ' (hoje)');
-    return `Abriremos ${st.nextOpen.offset ? + dayName : ''}${hint} às ${fmtHM(st.nextOpen.startMins)}`;
-  }
+function calcNextOpenText(){
+  const st = _statusNow();
+  if (!st || !st.nextOpen) return '';
+
+  const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
+  const dayName = map[st.nextOpen.dayKey] || st.nextOpen.dayKey;
+
+  const isToday = !st.nextOpen.offset;
+  const isTomorrow = st.nextOpen.offset === 1;
+  const hint = isToday ? ' (hoje)' : (isTomorrow ? ' (amanhã)' : '');
+
+  // monta “Abriremos Quarta (amanhã) às 18:00” ou “Abriremos (hoje) às 18:00”
+  const parts = [];
+  if (!isToday) parts.push(dayName);
+  if (hint) parts.push(hint);
+
+  return `Abriremos ${parts.join(' ')} às ${fmtHM(st.nextOpen.startMins)}`;
+}
+
 
   function isOpenNow(){
     const st = _statusNow();
@@ -1110,7 +1121,7 @@ function updateGlobalClosedBanner(){
   let whenText = 'em breve.';
   if (info){
     const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
-    whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
+    whenText = `${info.isToday ? '' : info.dayName}${hint} às ${info.timeText}.`.replace(/^ /,'');
   }
 
   const bar = document.createElement('div');
