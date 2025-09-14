@@ -873,7 +873,6 @@ document.addEventListener('DOMContentLoaded', function(){
   function norm(s){
     return String(s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase().trim();
   }
-  // unifica nomes de dias (com/sem "-feira", abreviações)
   function canonDay(s){
     const n = norm(s).replace(/\s*-\s*feira$/,'');
     if (/^dom/.test(n)) return 'domingo';
@@ -898,14 +897,14 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ---------- parser com múltiplos intervalos ---------- */
-  // Lê "07:00 às 11:00; 12:00 às 18:00" (também funciona com vírgula ou " e ")
+  // Aceita "07:00 às 11:00; 12:00 às 18:00" (também "," ou " e ") e "às|as"
   function parseAllRanges(txt){
     const out = [];
-    const re = /(\d{1,2}:\d{2})\s*às\s*(\d{1,2}:\d{2})/gi;
+    const re = /(\d{1,2}:\d{2})\s*(?:às|as)\s*(\d{1,2}:\d{2})/gi;
     let m;
     while ((m = re.exec(String(txt||'')))){
       const a = parseTime(m[1]), b = parseTime(m[2]);
-      if (a===null || b===null || a===b) continue; // ignora 00:00–00:00
+      if (a===null || b===null || a===b) continue; // 00:00–00:00 => fechado
       out.push({ start:a, end:b, overnight:(b<a) });
     }
     return out;
@@ -917,20 +916,19 @@ document.addEventListener('DOMContentLoaded', function(){
     if(!rows.length) return null;
     const map={};
     rows.forEach(tr=>{
-      const day = canonDay(tr.children?.[0]?.textContent || '');
-      const txt = (tr.children?.[1]?.textContent || '').trim();
+      const day = canonDay(tr.children && tr.children[0] ? tr.children[0].textContent : '');
+      const txt = (tr.children && tr.children[1] ? tr.children[1].textContent : '').trim();
       const low = norm(txt);
       if (!map[day]) map[day] = []; // acumula por dia
 
-      // fechado: vazio, "Fechado", traço, etc.
+      // fechado explícito
       if(!txt || /fechado|—|^-+$/.test(low)){ return; }
 
-      // coleta todos os intervalos presentes na célula
       const ranges = parseAllRanges(txt);
       if (ranges.length) map[day].push(...ranges);
     });
 
-    // normaliza: dias sem intervalos viram null
+    // dias sem intervalo => null (compatível com seu código)
     Object.keys(map).forEach(k=>{ if (!map[k].length) map[k] = null; });
     return map;
   }
@@ -955,40 +953,33 @@ document.addEventListener('DOMContentLoaded', function(){
     const todayRanges = Array.isArray(sched[today]) ? sched[today] : [];
     const yRangesOver = (Array.isArray(sched[yesterday]) ? sched[yesterday] : []).filter(r=>r.overnight);
 
-    // 1) dentro de algum intervalo de HOJE?
+    // dentro de algum intervalo de hoje?
     let active = todayRanges.find(r => inRange(mins, r));
-    // 2) senão, pode ser o final de um intervalo de ONTEM que virou a noite
+    // ou final de um overnight iniciado ontem?
     if (!active) active = yRangesOver.find(r => mins <= r.end);
 
     const open = !!active;
     let closeMins = null;
-    if (open) closeMins = active.end; // se overnight, fecha no "dia seguinte" (hora do end)
+    if (open) closeMins = active.end;
 
     // próxima abertura (se fechado)
     let nextOpen = null;
     if (!open){
-      // ainda hoje?
-      const todaysStarts = todayRanges
-        .map(r => r.start)
-        .filter(s => s > mins)
-        .sort((a,b)=>a-b);
+      const todaysStarts = todayRanges.map(r=>r.start).filter(s=>s>mins).sort((a,b)=>a-b);
       if (todaysStarts.length){
         nextOpen = { dayKey: today, startMins: todaysStarts[0], offset:0 };
       } else {
-        // nos próximos 7 dias
         for (let i=1;i<=7;i++){
           const d = new Date(now); d.setDate(now.getDate()+i);
           const k = todayKey(d);
           const rs = Array.isArray(sched[k]) ? sched[k] : [];
           if (rs.length){
-            const start = rs.map(r=>r.start).sort((a,b)=>a-b)[0];
-            nextOpen = { dayKey:k, startMins:start, offset:i };
+            nextOpen = { dayKey:k, startMins: rs.map(r=>r.start).sort((a,b)=>a-b)[0], offset:i };
             break;
           }
         }
       }
     }
-
     return { open, nextOpen, closeMins };
   }
 
@@ -1006,21 +997,24 @@ document.addEventListener('DOMContentLoaded', function(){
     return { open: st.open, nextText: st.open ? '' : (calcNextOpenText() || '') };
   }
 
+  /* ---------- helpers p/ banner fechado ---------- */
+  function displayDayName(key){
+    const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
+    return map[key] || (key.charAt(0).toUpperCase()+key.slice(1));
+  }
   function getNextOpenInfo(){
     const st = _statusNow();
     if (!st || !st.nextOpen) return null;
-    const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
-    const dayKey = st.nextOpen.dayKey;
     return {
       isToday: !st.nextOpen.offset,
       isTomorrow: st.nextOpen.offset === 1,
-      dayKey,
-      dayName: map[dayKey] || dayKey,
+      dayKey: st.nextOpen.dayKey,
+      dayName: displayDayName(st.nextOpen.dayKey),
       timeText: fmtHM(st.nextOpen.startMins)
     };
   }
 
-  /* ---------- UI: selo no header ---------- */
+  /* ---------- UI: selo no header (mantido; agora mostra hora de fechar) ---------- */
   function updateHeaderPill(){
     const headerRoot =
       document.querySelector('b\\:section#header') ||
@@ -1029,7 +1023,6 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!headerRoot) return;
     const slot=headerRoot.querySelector('.status-slot');
     if(!slot) return;
-
     const st=_statusNow();
     const pill=document.createElement('span');
     pill.className='pill'+(st.open ? '' : ' closed');
@@ -1037,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', function(){
     slot.innerHTML=''; slot.appendChild(pill);
   }
 
-  /* ---------- UI: bloquear finalização fora do horário ---------- */
+  /* ---------- UI: bloquear finalização fora do horário (igual) ---------- */
   function enforceCheckoutGuard(){
     const {open}=isOpenNow();
     const send=document.getElementById('btn-enviar-wa');
@@ -1059,24 +1052,39 @@ document.addEventListener('DOMContentLoaded', function(){
     } else if (banner){ banner.remove(); }
   }
 
-  // ---------- Banner global: vermelho (fechado) / verde FIXO (aberto) ----------
+  /* ---------- posicionamento da barra verde abaixo do header ---------- */
+  function __getHeaderOffsetPx(){
+    const headerRoot =
+      document.querySelector('b\\:section#header') ||
+      document.querySelector('.header.section') ||
+      document.querySelector('.header');
+    if (!headerRoot) return 0;
+    const cs = getComputedStyle(headerRoot);
+    const pos = cs.position;
+    const r = headerRoot.getBoundingClientRect();
+    if (pos === 'fixed' || pos === 'sticky' || r.top <= 0) return Math.max(0, r.bottom);
+    return 0;
+  }
+
+  /* ---------- Banner global: vermelho (fechado) / verde FIXO (aberto) ---------- */
   function updateGlobalClosedBanner(){
     const st = _statusNow();
 
-    // remove os dois e recria o necessário
-    document.getElementById('delivery-alert')?.remove(); // vermelho
-    document.getElementById('delivery-open')?.remove();  // verde
+    // remove existentes
+    document.getElementById('delivery-alert')?.remove();
+    document.getElementById('delivery-open')?.remove();
 
     if (st.open === null) return;
 
     if (st.open === true){
-      // BANNER VERDE (FIXO, não rola com a página) no MESMO local visual (topo)
+      // VERDE FIXO (não rola) abaixo do header
       const bar = document.createElement('div');
       bar.id = 'delivery-open';
       bar.setAttribute('role','status');
       bar.setAttribute('aria-live','polite');
       bar.style.cssText = [
-        'position:fixed','top:0','left:0','right:0','z-index:9999',
+        'position:fixed','left:0','right:0',
+        'z-index:2147483000',
         'background:#16a34a','color:#fff',
         'border-bottom:1px solid #86efac',
         'padding:10px 12px','text-align:center',
@@ -1084,17 +1092,20 @@ document.addEventListener('DOMContentLoaded', function(){
       ].join(';');
       bar.textContent = 'Estamos abertos agora. Fecha às ' + fmtHM(st.closeMins) + '.';
       document.body.appendChild(bar);
+      function positionOpenBar(){ bar.style.top = __getHeaderOffsetPx() + 'px'; }
+      positionOpenBar();
+      window.addEventListener('scroll', positionOpenBar, {passive:true});
+      window.addEventListener('resize', positionOpenBar);
       return;
     }
 
-    // BANNER VERMELHO (sticky) quando fechado
+    // VERMELHO sticky (fechado)
     const info = getNextOpenInfo();
     let whenText = 'em breve.';
     if (info){
       const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
       whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
     }
-
     const bar = document.createElement('div');
     bar.id = 'delivery-alert';
     bar.setAttribute('role','status');
@@ -1106,12 +1117,10 @@ document.addEventListener('DOMContentLoaded', function(){
       'padding:10px 12px','text-align:center',
       'font-weight:700','font-size:14px'
     ].join(';');
-
     const headerRoot =
       document.querySelector('b\\:section#header') ||
       document.querySelector('.header.section') ||
       document.querySelector('.header');
-
     bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
     if (headerRoot && headerRoot.parentNode){
       headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
@@ -1120,7 +1129,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  // trava via captura (garante bloqueio mesmo se alguém tentar burlar)
+  // trava via captura (mantido)
   document.addEventListener('click', function(e){
     const send = e.target.closest?.('#btn-enviar-wa');
     const go   = e.target.closest?.('#btn-ir-finalizar');
@@ -1133,14 +1142,14 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }, true);
 
-  // Atualiza agora e a cada minuto (com guarda p/ não duplicar)
-  function __tick(){ try{ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner(); }catch(_){ }}
-  __tick();
-  if (!window.__ENVIAAGORA_STATUS_TICK__){
-    window.__ENVIAAGORA_STATUS_TICK__ = setInterval(__tick, 60*1000);
-  }
+  // mesmo tick do seu código
+  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner(); }
+  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick);
+  else tick();
+  setInterval(tick, 60*1000);
 
 })();
+
 
 
 
