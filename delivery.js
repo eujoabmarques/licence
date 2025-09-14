@@ -1067,67 +1067,77 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   /* ---------- Banner global: vermelho (fechado) / verde FIXO (aberto) ---------- */
-  function updateGlobalClosedBanner(){
-    const st = _statusNow();
+function updateGlobalClosedBanner(){
+  const st = _statusNow();
 
-    // remove existentes
-    document.getElementById('delivery-alert')?.remove();
-    document.getElementById('delivery-open')?.remove();
+  // remove existentes para recriar
+  document.getElementById('delivery-alert')?.remove();
+  document.getElementById('delivery-open')?.remove();
 
-    if (st.open === null) return;
+  if (st.open === null) return;
 
-    if (st.open === true){
-      // VERDE FIXO (não rola) abaixo do header
-      const bar = document.createElement('div');
-      bar.id = 'delivery-open';
-      bar.setAttribute('role','status');
-      bar.setAttribute('aria-live','polite');
-      bar.style.cssText = [
-        'position:fixed','left:0','right:0',
-        'z-index:2147483000',
-        'background:#16a34a','color:#fff',
-        'border-bottom:1px solid #86efac',
-        'padding:10px 12px','text-align:center',
-        'font-weight:800','font-size:14px'
-      ].join(';');
-      bar.textContent = 'Estamos abertos agora. Fecha às ' + fmtHM(st.closeMins) + '.';
-      document.body.appendChild(bar);
-      function positionOpenBar(){ bar.style.top = __getHeaderOffsetPx() + 'px'; }
-      positionOpenBar();
-      window.addEventListener('scroll', positionOpenBar, {passive:true});
-      window.addEventListener('resize', positionOpenBar);
-      return;
-    }
-
-    // VERMELHO sticky (fechado)
-    const info = getNextOpenInfo();
-    let whenText = 'em breve.';
-    if (info){
-      const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
-      whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
-    }
+  // === ABERTO: barra VERDE com o MESMO ESTILO do aviso de fechado,
+  // inserida logo abaixo do header e sem "fixed"/"sticky" ===
+  if (st.open === true){
     const bar = document.createElement('div');
-    bar.id = 'delivery-alert';
+    bar.id = 'delivery-open';
     bar.setAttribute('role','status');
     bar.setAttribute('aria-live','polite');
     bar.style.cssText = [
-      'position:sticky','top:0','z-index:9998',
-      'background:#ff0000','color:#fff',
-      'border-bottom:1px solid #fecaca',
+      // (sem position → default = static; NÃO acompanha o scroll)
+      'background:#16a34a','color:#fff',
+      'border-bottom:1px solid #86efac',
       'padding:10px 12px','text-align:center',
       'font-weight:700','font-size:14px'
     ].join(';');
+    bar.textContent = 'Estamos abertos agora. Fecha às ' + fmtHM(st.closeMins) + '.';
+
     const headerRoot =
       document.querySelector('b\\:section#header') ||
       document.querySelector('.header.section') ||
       document.querySelector('.header');
-    bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
+
     if (headerRoot && headerRoot.parentNode){
       headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
     } else {
       document.body.insertBefore(bar, document.body.firstChild);
     }
+    return;
   }
+
+  // === FECHADO: mantém o banner VERMELHO sticky como já estava ===
+  const info = getNextOpenInfo();
+  let whenText = 'em breve.';
+  if (info){
+    const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
+    whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
+  }
+
+  const bar = document.createElement('div');
+  bar.id = 'delivery-alert';
+  bar.setAttribute('role','status');
+  bar.setAttribute('aria-live','polite');
+  bar.style.cssText = [
+    'position:sticky','top:0','z-index:9998',
+    'background:#ff0000','color:#fff',
+    'border-bottom:1px solid #fecaca',
+    'padding:10px 12px','text-align:center',
+    'font-weight:700','font-size:14px'
+  ].join(';');
+
+  const headerRoot =
+    document.querySelector('b\\:section#header') ||
+    document.querySelector('.header.section') ||
+    document.querySelector('.header');
+
+  bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
+  if (headerRoot && headerRoot.parentNode){
+    headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
+  } else {
+    document.body.insertBefore(bar, document.body.firstChild);
+  }
+}
+
 
   // trava via captura (mantido)
   document.addEventListener('click', function(e){
