@@ -897,124 +897,52 @@ document.addEventListener('DOMContentLoaded', function(){
     return canonDay(new Intl.DateTimeFormat('pt-BR',{weekday:'long'}).format(d));
   }
 
-  /* ---------- parser com múltiplos intervalos ---------- */
-  // Aceita "07:00 às 11:00; 12:00 às 18:00", com ";" "," ou " e "
-  // e tanto "às" (com acento) como "as".
-  function parseAllRanges(txt){
-    const out = [];
-    const re = /(\d{1,2}:\d{2})\s*(?:às|as)\s*(\d{1,2}:\d{2})/gi;
-    let m;
-    while ((m = re.exec(String(txt||'')))){
-      const a = parseTime(m[1]), b = parseTime(m[2]);
-      if (a===null || b===null || a===b) continue; // ignora 00:00–00:00
-      out.push({ start:a, end:b, overnight:(b<a) });
-    }
-    return out;
-  }
-
-  /* ---------- lê a tabela .open-hours (com vários intervalos) ---------- */
+  /* ---------- lê a tabela .open-hours ---------- */
   function getSchedule(){
     const rows=[...document.querySelectorAll('.open-hours tr')];
     if(!rows.length) return null;
     const map={};
     rows.forEach(tr=>{
-      const day = canonDay(tr.children && tr.children[0] ? tr.children[0].textContent : '');
-      const txt = (tr.children && tr.children[1] ? tr.children[1].textContent : '').trim();
+      const day = canonDay(tr.children?.[0]?.textContent || '');
+      const txt = (tr.children?.[1]?.textContent || '').trim();
       const low = norm(txt);
-      if (!map[day]) map[day] = [];
-      // fechado explícito
-      if(!txt || /fechado|—|^-+$/.test(low)){ return; }
-      const ranges = parseAllRanges(txt);
-      if (ranges.length) map[day].push(...ranges);
+      // fechado: vazio, "Fechado", traço, ou 00:00 às 00:00
+      if(!txt || /fechado|—|^-+$/.test(low)){ map[day]=null; return; }
+      const mm=/(\d{1,2}:\d{2})\s*às\s*(\d{1,2}:\d{2})/i.exec(txt);
+      if(!mm){ map[day]=null; return; }
+      const a=parseTime(mm[1]), b=parseTime(mm[2]);
+      if(a===null||b===null||a===b){ map[day]=null; return; } // 00:00–00:00 => fechado
+      map[day]={start:a,end:b,overnight:(b<a)}; // overnight: ex 20:00–02:00
     });
-    Object.keys(map).forEach(k=>{ if (!map[k].length) map[k] = null; });
     return map;
   }
 
-  /* ---------- estado aberto/fechado + próxima abertura/fechamento ---------- */
-  function inRange(mins, r){
-    return r.overnight ? (mins >= r.start || mins <= r.end)
-                       : (mins >= r.start && mins <= r.end);
-  }
-
-  // Calcula status atual usando o schedule acima
-  function _statusNow(){
-    const sched = getSchedule();
-    if (!sched) return { open:null, nextOpen:null, closeMins:null };
-
-    const now = new Date();
-    const mins = now.getHours()*60 + now.getMinutes();
-
-    const today = todayKey(now);
-    const yesterdayDate = new Date(now); yesterdayDate.setDate(now.getDate()-1);
-    const yesterday = todayKey(yesterdayDate);
-
-    const todayRanges = Array.isArray(sched[today]) ? sched[today] : [];
-    const yRangesOver = (Array.isArray(sched[yesterday]) ? sched[yesterday] : []).filter(r=>r.overnight);
-
-    // dentro de algum intervalo de hoje?
-    let active = todayRanges.find(r => inRange(mins, r));
-    // ou final de intervalo de ontem (overnight)?
-    if (!active) active = yRangesOver.find(r => mins <= r.end);
-
-    const open = !!active;
-    let closeMins = null;
-    if (open) closeMins = active.end;
-
-    // próxima abertura (se fechado)
-    let nextOpen = null;
-    if (!open){
-      const todaysStarts = todayRanges.map(r=>r.start).filter(s=>s>mins).sort((a,b)=>a-b);
-      if (todaysStarts.length){
-        nextOpen = { dayKey: today, startMins: todaysStarts[0], offset:0 };
-      } else {
-        for (let i=1;i<=7;i++){
-          const d = new Date(now); d.setDate(now.getDate()+i);
-          const k = todayKey(d);
-          const rs = Array.isArray(sched[k]) ? sched[k] : [];
-          if (rs.length){
-            nextOpen = { dayKey:k, startMins: rs.map(r=>r.start).sort((a,b)=>a-b)[0], offset:i };
-            break;
-          }
-        }
-      }
+  /* ---------- estado aberto/fechado ---------- */
+  function calcNextOpenText(sched, now){
+    const key=todayKey(now); const slot=sched[key];
+    const mins=now.getHours()*60+now.getMinutes();
+    if (slot && !slot.overnight && mins < slot.start){
+      return 'Abrimos às ' + fmtHM(slot.start);
     }
-    return { open, nextOpen, closeMins };
+    for (let i=1;i<=7;i++){
+      const d=new Date(now); d.setDate(now.getDate()+i);
+      const k=todayKey(d); const s=sched[k];
+      if (s){ return (i===1 ? 'Amanhã' : 'Em breve') + ' às ' + fmtHM(s.start); }
+    }
+    return '';
   }
-
-  function calcNextOpenText(/*sched, now*/){
-    const st = _statusNow();
-    if (!st || !st.nextOpen) return '';
-    const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
-    const dayName = map[st.nextOpen.dayKey] || st.nextOpen.dayKey;
-    const hint = st.nextOpen.offset === 1 ? ' (amanhã)' : (st.nextOpen.offset ? '' : ' (hoje)');
-    return `Abrimos ${st.nextOpen.offset ? 'na ' + dayName : ''}${hint} às ${fmtHM(st.nextOpen.startMins)}`;
-  }
-
   function isOpenNow(){
-    const st = _statusNow();
-    return { open: st.open, nextText: st.open ? '' : (calcNextOpenText() || '') };
+    const sched=getSchedule(); if(!sched) return {open:null,nextText:''};
+    const now=new Date(); const key=todayKey(now); const slot=sched[key];
+    if(!slot) return {open:false,nextText:calcNextOpenText(sched, now)};
+    const mins=now.getHours()*60+now.getMinutes();
+    let open=false;
+    if (slot.overnight){ open = (mins>=slot.start || mins<=slot.end); }
+    else { open = (mins>=slot.start && mins<=slot.end); }
+    return {open,nextText: open ? '' : calcNextOpenText(sched, now)};
   }
 
-  // Helpers para banner fechado (já usados no seu código)
-  function displayDayName(key){
-    const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
-    return map[key] || (key.charAt(0).toUpperCase()+key.slice(1));
-  }
-  function getNextOpenInfo(){
-    const st = _statusNow();
-    if (!st || !st.nextOpen) return null;
-    const dayKey = st.nextOpen.dayKey;
-    return {
-      isToday: !st.nextOpen.offset,
-      isTomorrow: st.nextOpen.offset === 1,
-      dayKey,
-      dayName: displayDayName(dayKey),
-      timeText: fmtHM(st.nextOpen.startMins)
-    };
-  }
-
-  /* ---------- UI: selo no header (mantido) ---------- */
+  /* ---------- UI: selo no header ---------- */
   function updateHeaderPill(){
     const headerRoot =
       document.querySelector('b\\:section#header') ||
@@ -1030,7 +958,7 @@ document.addEventListener('DOMContentLoaded', function(){
     slot.innerHTML=''; slot.appendChild(pill);
   }
 
-  /* ---------- UI: bloquear finalização fora do horário (mantido) ---------- */
+  /* ---------- UI: bloquear finalização fora do horário ---------- */
   function enforceCheckoutGuard(){
     const {open}=isOpenNow();
     const send=document.getElementById('btn-enviar-wa');
@@ -1052,86 +980,6 @@ document.addEventListener('DOMContentLoaded', function(){
     } else if (banner){ banner.remove(); }
   }
 
-  // calcula a altura do header para posicionar a barra verde logo abaixo
-  function __getHeaderOffsetPx(){
-    const headerRoot =
-      document.querySelector('b\\:section#header') ||
-      document.querySelector('.header.section') ||
-      document.querySelector('.header');
-    if (!headerRoot) return 0;
-    const cs = getComputedStyle(headerRoot);
-    const pos = cs.position;
-    const r = headerRoot.getBoundingClientRect();
-    if (pos === 'fixed' || pos === 'sticky' || r.top <= 0) return Math.max(0, r.bottom);
-    return 0;
-  }
-
-  /* ---------- Banner global: vermelho (fechado) / verde FIXO (aberto) ---------- */
-  function updateGlobalClosedBanner(){
-    const st = _statusNow();
-
-    // remove existentes
-    document.getElementById('delivery-alert')?.remove();
-    document.getElementById('delivery-open')?.remove();
-
-    if (st.open === null) return;
-
-    if (st.open === true){
-      // Barra VERDE fixa (não rola com a página), logo abaixo do header
-      const bar = document.createElement('div');
-      bar.id = 'delivery-open';
-      bar.setAttribute('role','status');
-      bar.setAttribute('aria-live','polite');
-      bar.style.cssText = [
-        'position:fixed','left:0','right:0',
-        'z-index:2147483000',
-        'background:#16a34a','color:#fff',
-        'border-bottom:1px solid #86efac',
-        'padding:10px 12px','text-align:center',
-        'font-weight:800','font-size:14px'
-      ].join(';');
-      bar.textContent = 'Estamos abertos agora. Fecha às ' + fmtHM(st.closeMins) + '.';
-      document.body.appendChild(bar);
-      function positionOpenBar(){ bar.style.top = __getHeaderOffsetPx() + 'px'; }
-      positionOpenBar();
-      window.addEventListener('scroll', positionOpenBar, {passive:true});
-      window.addEventListener('resize', positionOpenBar);
-      return;
-    }
-
-    // Barra VERMELHA sticky quando fechado
-    const info = getNextOpenInfo();
-    let whenText = 'em breve.';
-    if (info){
-      const hint = info.isToday ? ' (hoje)' : (info.isTomorrow ? ' (amanhã)' : '');
-      whenText = `na ${info.dayName}${hint} às ${info.timeText}.`;
-    }
-
-    const bar = document.createElement('div');
-    bar.id = 'delivery-alert';
-    bar.setAttribute('role','status');
-    bar.setAttribute('aria-live','polite');
-    bar.style.cssText = [
-      'position:sticky','top:0','z-index:9998',
-      'background:#ff0000','color:#fff',
-      'border-bottom:1px solid #fecaca',
-      'padding:10px 12px','text-align:center',
-      'font-weight:700','font-size:14px'
-    ].join(';');
-
-    const headerRoot =
-      document.querySelector('b\\:section#header') ||
-      document.querySelector('.header.section') ||
-      document.querySelector('.header');
-
-    bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
-    if (headerRoot && headerRoot.parentNode){
-      headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
-    } else {
-      document.body.insertBefore(bar, document.body.firstChild);
-    }
-  }
-
   // trava via captura (garante bloqueio mesmo se alguém tentar burlar)
   document.addEventListener('click', function(e){
     const send = e.target.closest?.('#btn-enviar-wa');
@@ -1144,14 +992,8 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     }
   }, true);
-
-  // === NÃO MEXIDO: mesmo tick do seu código original ===
-  function tick(){ updateHeaderPill(); enforceCheckoutGuard(); updateGlobalClosedBanner(); }
-  if (document.readyState==='loading') document.addEventListener('DOMContentLoaded', tick);
-  else tick();
-  setInterval(tick, 60*1000);
-
 })();
+
 
 
 
