@@ -989,7 +989,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const map = {domingo:'Domingo',segunda:'Segunda',terca:'Terça',quarta:'Quarta',quinta:'Quinta',sexta:'Sexta',sabado:'Sábado'};
     const dayName = map[st.nextOpen.dayKey] || st.nextOpen.dayKey;
     const hint = st.nextOpen.offset === 1 ? ' (amanhã)' : (st.nextOpen.offset ? '' : ' (hoje)');
-    return `Abrimos ${st.nextOpen.offset ? 'na ' + dayName : ''}${hint} às ${fmtHM(st.nextOpen.startMins)}`;
+    return `Abriremos ${st.nextOpen.offset ? + dayName : ''}${hint} às ${fmtHM(st.nextOpen.startMins)}`;
   }
 
   function isOpenNow(){
@@ -1026,7 +1026,7 @@ document.addEventListener('DOMContentLoaded', function(){
     const st=_statusNow();
     const pill=document.createElement('span');
     pill.className='pill'+(st.open ? '' : ' closed');
-    pill.textContent = st.open ? ('DELIVERY ABERTO! • fecha às ' + fmtHM(st.closeMins)) : 'DELIVERY FECHADO!';
+    pill.textContent = st.open ? ('DELIVERY ABERTO! • fechamos às ' + fmtHM(st.closeMins)) : 'DELIVERY FECHADO!';
     slot.innerHTML=''; slot.appendChild(pill);
   }
 
@@ -1090,7 +1090,7 @@ function updateGlobalClosedBanner(){
       'padding:10px 12px','text-align:center',
       'font-weight:700','font-size:14px'
     ].join(';');
-    bar.textContent = 'Estamos abertos agora. Fecha às ' + fmtHM(st.closeMins) + '.';
+    bar.textContent = 'Estamos abertos agora. Fechamos às ' + fmtHM(st.closeMins) + '.';
 
     const headerRoot =
       document.querySelector('b\\:section#header') ||
@@ -1130,7 +1130,7 @@ function updateGlobalClosedBanner(){
     document.querySelector('.header.section') ||
     document.querySelector('.header');
 
-  bar.textContent = `Estamos fechados agora. Abrimos ${whenText}`;
+  bar.textContent = `Estamos fechados agora. Abriremos ${whenText}`;
   if (headerRoot && headerRoot.parentNode){
     headerRoot.parentNode.insertBefore(bar, headerRoot.nextSibling);
   } else {
