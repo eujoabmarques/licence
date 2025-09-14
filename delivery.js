@@ -910,6 +910,64 @@ document.addEventListener('DOMContentLoaded', function(){
     return out;
   }
 
+
+
+    /* ---------- FERIADOS (lê do LinkList "Feriados") ---------- */
+  function __collectConfigAnchors(){
+    // Varre a seção de configuração e todos os LinkList
+    const sels = [
+      'b\\:section#configuracao a',
+      '#configuracao.section a',
+      '#configuracao a',
+      '[id^="LinkList"] .widget-content a'
+    ];
+    const out = [];
+    sels.forEach(sel=>{
+      document.querySelectorAll(sel).forEach(a=>{
+        const name  = (a.textContent||'').trim();
+        const value = (a.getAttribute('href') || a.textContent || '').trim();
+        out.push({ name, lower: name.toLowerCase(), value });
+      });
+    });
+    return out;
+  }
+
+  function parseHolidaysString(s){
+    // Aceita: 25/12, 25-12, 01/01, 1/1; separadores , ; \n
+    const set = new Set();
+    String(s||'').split(/[,;\n]+/).forEach(token=>{
+      const t = String(token||'').trim();
+      if (!t) return;
+      const m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.]\d{2,4})?$/);
+      if (!m) return;
+      const dd = Math.max(1, Math.min(31, parseInt(m[1],10)||0));
+      const mm = Math.max(1, Math.min(12, parseInt(m[2],10)||0));
+      if (!dd || !mm) return;
+      set.add(String(mm).padStart(2,'0') + '-' + String(dd).padStart(2,'0')); // MM-DD
+    });
+    return set;
+  }
+
+  let __HOL_CACHE = null;
+  function getHolidaySet(){
+    if (__HOL_CACHE) return __HOL_CACHE;
+    const anchors = __collectConfigAnchors();
+    let raw = '';
+    anchors.forEach(a=>{
+      if (/\bferiad/.test(a.lower)) raw += (raw ? ',' : '') + a.value;
+    });
+    __HOL_CACHE = parseHolidaysString(raw);
+    return __HOL_CACHE;
+  }
+
+  function isHolidayDate(d){
+    const mmdd = String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    return getHolidaySet().has(mmdd);
+  }
+
+
+
+  
   /* ---------- lê a tabela .open-hours (agora com vários intervalos) ---------- */
   function getSchedule(){
     const rows=[...document.querySelectorAll('.open-hours tr')];
@@ -943,38 +1001,49 @@ document.addEventListener('DOMContentLoaded', function(){
     const sched = getSchedule();
     if (!sched) return { open:null, nextOpen:null, closeMins:null };
 
-    const now = new Date();
+    const now  = new Date();
     const mins = now.getHours()*60 + now.getMinutes();
 
     const today = todayKey(now);
-    const yesterdayDate = new Date(now); yesterdayDate.setDate(now.getDate()-1);
-    const yesterday = todayKey(yesterdayDate);
+    const yd    = new Date(now); yd.setDate(now.getDate()-1);
+    const yKey  = todayKey(yd);
 
-    const todayRanges = Array.isArray(sched[today]) ? sched[today] : [];
-    const yRangesOver = (Array.isArray(sched[yesterday]) ? sched[yesterday] : []).filter(r=>r.overnight);
+    // Se hoje é feriado, trata como dia totalmente fechado
+    const holidayToday = isHolidayDate(now);
 
-    // dentro de algum intervalo de hoje?
+    const todayRanges = holidayToday ? [] :
+      (Array.isArray(sched[today]) ? sched[today] : []);
+
+    // NÃO permite madrugada do dia anterior entrar em feriado
+    const yRangesOver = holidayToday ? [] :
+      ((Array.isArray(sched[yKey]) ? sched[yKey] : []).filter(r=>r.overnight));
+
+    // aberto agora?
     let active = todayRanges.find(r => inRange(mins, r));
-    // ou final de um overnight iniciado ontem?
     if (!active) active = yRangesOver.find(r => mins <= r.end);
 
     const open = !!active;
-    let closeMins = null;
-    if (open) closeMins = active.end;
+    const closeMins = open ? active.end : null;
 
-    // próxima abertura (se fechado)
+    // próxima abertura
     let nextOpen = null;
     if (!open){
-      const todaysStarts = todayRanges.map(r=>r.start).filter(s=>s>mins).sort((a,b)=>a-b);
-      if (todaysStarts.length){
-        nextOpen = { dayKey: today, startMins: todaysStarts[0], offset:0 };
-      } else {
-        for (let i=1;i<=7;i++){
+      // hoje ainda abre mais tarde? (só se não for feriado)
+      if (!holidayToday){
+        const later = todayRanges.map(r=>r.start).filter(s=>s>mins).sort((a,b)=>a-b);
+        if (later.length){
+          nextOpen = { dayKey: today, startMins: later[0], offset: 0 };
+        }
+      }
+      // procura nos próximos dias, pulando feriados
+      if (!nextOpen){
+        for (let i=1; i<=14; i++){ // até 2 semanas de folga
           const d = new Date(now); d.setDate(now.getDate()+i);
-          const k = todayKey(d);
+          if (isHolidayDate(d)) continue;
+          const k  = todayKey(d);
           const rs = Array.isArray(sched[k]) ? sched[k] : [];
           if (rs.length){
-            nextOpen = { dayKey:k, startMins: rs.map(r=>r.start).sort((a,b)=>a-b)[0], offset:i };
+            nextOpen = { dayKey: k, startMins: rs.map(r=>r.start).sort((a,b)=>a-b)[0], offset: i };
             break;
           }
         }
@@ -982,6 +1051,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     return { open, nextOpen, closeMins };
   }
+
 
 function calcNextOpenText(){
   const st = _statusNow();
