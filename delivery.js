@@ -1,7 +1,125 @@
 //<![CDATA[
 
 
+(function(){
+  "use strict";
 
+  /* ===== CONFIG ===== */
+  var MOBILE_ONLY  = false;      // true: aplica só até 768px; false: aplica sempre quando for Card
+  var ASPECT_RATIO = "16 / 9";  // "1 / 1" para quadrada; "16 / 9" (padrão)
+
+  function isCardMode(){
+    return document.documentElement.classList.contains("layout-cards");
+  }
+  function isMobile(){
+    return window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+  }
+
+  function getMainMedia(card){
+    // tenta pegar primeiro um <a><img/></a> (seu HTML usa isso), senão um <img> direto
+    var anchorWithImg = card.querySelector("a > img") ? card.querySelector("a > img").parentNode : null;
+    var img = card.querySelector("img");
+    return anchorWithImg || img || null;
+  }
+
+  function makeImgOnTop(card){
+    if (!card || card.__imgTopApplied) return;
+
+    var media = getMainMedia(card);
+    if (!media) return;
+
+    // guarda posição original (pra poder desfazer quando sair do mobile, se quiser)
+    if (!media.__origParent){
+      media.__origParent = media.parentNode;
+      media.__origNext   = media.nextSibling || null;
+    }
+
+    // coloca como primeiro filho do card
+    if (card.firstChild !== media){
+      card.insertBefore(media, card.firstChild);
+    }
+
+    // força layout “empilhado” (imagem em cima)
+    card.style.display = "flex";
+    card.style.flexDirection = "column";
+    card.style.gap = "12px";
+    card.style.gridTemplateColumns = "unset";
+
+    // se for o <img> dentro do <a>, estiliza o <img>
+    var img = media.tagName === "IMG" ? media : media.querySelector("img");
+    if (img){
+      img.style.order = "-1";
+      img.style.width = "100%";
+      img.style.height = "auto";
+      img.style.objectFit = "cover";
+      try { img.style.aspectRatio = ASPECT_RATIO; } catch(_) {}
+    }
+
+    card.__imgTopApplied = true;
+  }
+
+  function undoImgOnTop(card){
+    if (!card || !card.__imgTopApplied) return;
+
+    var media = getMainMedia(card);
+    if (!media){ card.__imgTopApplied = false; return; }
+
+    // volta para o lugar original
+    if (media.__origParent){
+      if (media.__origNext){
+        media.__origParent.insertBefore(media, media.__origNext);
+      }else{
+        media.__origParent.appendChild(media);
+      }
+    }
+
+    // limpa estilos
+    card.style.display = "";
+    card.style.flexDirection = "";
+    card.style.gap = "";
+    card.style.gridTemplateColumns = "";
+
+    var img = media.tagName === "IMG" ? media : media.querySelector("img");
+    if (img){
+      img.style.order = "";
+      img.style.width = "";
+      img.style.height = "";
+      img.style.objectFit = "";
+      img.style.aspectRatio = "";
+    }
+
+    card.__imgTopApplied = false;
+  }
+
+  function applyAll(){
+    if (!isCardMode()) return;                    // só no modo Card
+    var mustApply = MOBILE_ONLY ? isMobile() : true;
+
+    var cards = document.querySelectorAll(".cards-wrap .card, .card.produto");
+    for (var i=0;i<cards.length;i++){
+      if (mustApply) makeImgOnTop(cards[i]); else undoImgOnTop(cards[i]);
+    }
+  }
+
+  function boot(){
+    applyAll();
+
+    // re-aplica quando muda o tamanho (entra/sai do mobile)
+    window.addEventListener("resize", applyAll);
+
+    // observa novos cards (ex.: paginação dinâmica)
+    var obs = new MutationObserver(function(muts){
+      for (var i=0;i<muts.length;i++){
+        if (muts[i].addedNodes && muts[i].addedNodes.length){ applyAll(); break; }
+      }
+    });
+    obs.observe(document.body, {childList:true, subtree:true});
+  }
+
+  (document.readyState === "loading")
+    ? document.addEventListener("DOMContentLoaded", boot)
+    : boot();
+})();
 
 
 
