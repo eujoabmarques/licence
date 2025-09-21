@@ -724,11 +724,12 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   }
 }
 
-/* ====== Galeria do produto ====== */
-/* altura: mais contida no desktop; ocupa bem no mobile */
+/* ===== GALERIA DO PRODUTO (carrossel) ========================== */
+/* altura mais contida no desktop, boa no mobile */
 :root{
   --gal-h: clamp(220px, 58vh, 540px);
 }
+
 #produto-in .produto-gallery{
   position: relative;
   border-radius: 14px;
@@ -736,6 +737,8 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   background: #000;
   margin: 0 0 14px;
 }
+
+/* viewport/track/slides */
 #produto-in .produto-gallery .g-viewport{
   height: var(--gal-h);
   position: relative;
@@ -757,12 +760,7 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   display: block;
 }
 
-/* ====== Controles sempre visíveis ====== */
-#produto-in .produto-gallery .g-ctrl{
-  position: absolute;
-  inset: 0;
-  pointer-events: none; /* deixa só os botões clicáveis */
-}
+/* ===== Controles (setas) ====================================== */
 #produto-in .produto-gallery .g-btn{
   position: absolute;
   top: 50%;
@@ -773,19 +771,20 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   color: #111; font-weight: 900;
   box-shadow: 0 8px 24px rgba(0,0,0,.22);
   cursor: pointer;
-  opacity: 1 !important;           /* <- SEMPRE visíveis */
-  visibility: visible !important;   /* <- SEMPRE visíveis */
-  pointer-events: auto;
+  transition: opacity .25s ease, transform .15s ease;
 }
-#produto-in .produto-gallery .g-btn.prev{ left: 10px; }
-#produto-in .produto-gallery .g-btn.next{ right: 10px; }
-#produto-in .produto-gallery .g-btn:active{ transform: translateY(-50%) scale(.96); }
+#produto-in .produto-gallery .g-btn:active{
+  transform: translateY(-50%) scale(.96);
+}
 #produto-in .produto-gallery .g-btn[disabled]{
-  opacity: .55 !important;
+  opacity: .55;
   cursor: not-allowed;
 }
 
-/* Dots */
+#produto-in .produto-gallery .g-prev{ left: 10px; }
+#produto-in .produto-gallery .g-next{ right: 10px; }
+
+/* ===== Dots ==================================================== */
 #produto-in .produto-gallery .g-dots{
   position: absolute;
   left: 50%; bottom: 10px;
@@ -793,6 +792,7 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   display: grid; grid-auto-flow: column; gap: 8px;
   background: rgba(0,0,0,.18);
   padding: 6px 10px; border-radius: 999px;
+  transition: opacity .25s ease;
 }
 #produto-in .produto-gallery .g-dot{
   width: 8px; height: 8px;
@@ -801,7 +801,20 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
 }
 #produto-in .produto-gallery .g-dot.active{ opacity: 1; }
 
-/* Mobile: setas um pouquinho menores */
+/* ===== Auto-hide: ficar invisível quando ocioso =============== */
+#produto-in .produto-gallery.is-idle .g-btn{
+  opacity: 0;
+  pointer-events: none;
+}
+/* se quiser esconder os dots também no idle, descomente: */
+/*
+#produto-in .produto-gallery.is-idle .g-dots{
+  opacity: 0;
+  pointer-events: none;
+}
+*/
+
+/* Mobile: setas um pouco menores */
 @media (max-width: 640px){
   #produto-in .produto-gallery .g-btn{ width: 36px; height: 36px; }
 }
