@@ -643,6 +643,7 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   grid-template-columns:repeat(auto-fill, minmax(280px,1fr));
   gap:16px;
   align-items:stretch;
+  margin-top: 12px;
 }
 
 /* card em coluna, mantendo seu visual de caixa branca */
