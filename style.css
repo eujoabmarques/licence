@@ -724,86 +724,87 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   }
 }
 
-/* ===== GALERIA DO PRODUTO (carrossel) — QUADRADA 1:1 ===== */
+/* ===== GALERIA QUADRADA 1:1 | SETAS SEMPRE VISÍVEIS | AUTO-HIDE NOS DOTS ===== */
+
+/* container da galeria */
 #produto-in .produto-gallery{
-  position: relative;
-  border-radius: 14px;
-  overflow: hidden;
-  background: #000;
-  margin: 0 0 14px;
+  position:relative;
+  border-radius:14px;
+  overflow:hidden;
+  background:#000;
+  margin:0 0 14px;
 }
 
-/* Agora a viewport é quadrada: altura = largura */
+/* Força quadrado e anula alturas antigas (se houver) */
 #produto-in .produto-gallery .g-viewport{
-  width: 100%;
-  aspect-ratio: 1 / 1;          /* <- quadrado */
-  position: relative;
+  width:100%;
+  aspect-ratio:1 / 1;       /* ← quadrada */
+  height:auto !important;   /* ← ignora var(--gal-h) ou similares */
+  min-height:0 !important;
+  position:relative;
 }
 
 #produto-in .produto-gallery .g-track{
-  display: flex;
-  height: 100%;
-  will-change: transform;
-  transition: transform .35s ease;
+  display:flex;
+  height:100%;
+  will-change:transform;
+  transition:transform .35s ease;
 }
-
-#produto-in .produto-gallery .g-slide{
-  min-width: 100%;
-  height: 100%;
-}
-
+#produto-in .produto-gallery .g-slide{ min-width:100%; height:100%; }
 #produto-in .produto-gallery .g-slide img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+  width:100%; height:100%;
+  object-fit:cover; display:block;
 }
 
-/* ===== Setas — SEMPRE visíveis (não entram no auto-hide) ===== */
+/* ===== SETAS (sempre visíveis) ===== */
 #produto-in .produto-gallery .g-btn{
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px; height: 40px;
-  border: 0; border-radius: 999px;
-  background: rgba(255,255,255,.96);
-  color: #111; font-weight: 900;
-  box-shadow: 0 8px 24px rgba(0,0,0,.22);
-  cursor: pointer;
-  transition: transform .15s ease;
-  /* nada de opacity aqui — ficam sempre visíveis */
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  width:40px; height:40px;
+  border:0; border-radius:999px;
+  background:rgba(255,255,255,.96);
+  color:#111; font-weight:900;
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
+  cursor:pointer;
+  z-index:10;                         /* garante sobreposição */
+  opacity:1 !important;               /* nunca esconde */
+  visibility:visible !important;
+  pointer-events:auto !important;
+  transition:transform .15s ease;
 }
-#produto-in .produto-gallery .g-btn:active{ transform: translateY(-50%) scale(.96); }
-#produto-in .produto-gallery .g-btn[disabled]{ opacity: .55; cursor: not-allowed; }
-#produto-in .produto-gallery .g-prev{ left: 10px; }
-#produto-in .produto-gallery .g-next{ right: 10px; }
+#produto-in .produto-gallery .g-btn:active{ transform:translateY(-50%) scale(.96); }
+#produto-in .produto-gallery .g-btn[disabled]{ opacity:.55 !important; cursor:not-allowed; }
+#produto-in .produto-gallery .g-prev{ left:10px; }
+#produto-in .produto-gallery .g-next{ right:10px; }
 
-/* ===== Dots (ficam no auto-hide) ===== */
+/* ===== DOTS (com auto-hide) ===== */
 #produto-in .produto-gallery .g-dots{
-  position: absolute;
-  left: 50%; bottom: 10px;
-  transform: translateX(-50%);
-  display: grid; grid-auto-flow: column; gap: 8px;
-  background: rgba(0,0,0,.18);
-  padding: 6px 10px; border-radius: 999px;
-  transition: opacity .25s ease;
+  position:absolute;
+  left:50%; bottom:10px;
+  transform:translateX(-50%);
+  display:grid; grid-auto-flow:column; gap:8px;
+  background:rgba(0,0,0,.18);
+  padding:6px 10px; border-radius:999px;
+  transition:opacity .25s ease;
+  z-index:6;
 }
 #produto-in .produto-gallery .g-dot{
-  width: 8px; height: 8px;
-  border-radius: 999px; background: #fff; opacity: .55;
-  border: 0; padding: 0; cursor: pointer;
+  width:8px; height:8px; border-radius:999px;
+  background:#fff; opacity:.55; border:0; padding:0; cursor:pointer;
 }
-#produto-in .produto-gallery .g-dot.active{ opacity: 1; }
+#produto-in .produto-gallery .g-dot.active{ opacity:1; }
 
-/* ===== Auto-hide: SÓ os dots somem quando ocioso ===== */
+/* Auto-hide: só os dots somem quando ocioso */
 #produto-in .produto-gallery.is-idle .g-dots{
-  opacity: 0;
-  pointer-events: none;
+  opacity:0;
+  pointer-events:none;
 }
 
 /* Mobile: setas menores */
-@media (max-width: 640px){
-  #produto-in .produto-gallery .g-btn{ width: 36px; height: 36px; }
+@media (max-width:640px){
+  #produto-in .produto-gallery .g-btn{ width:36px; height:36px; }
 }
+
 
 
