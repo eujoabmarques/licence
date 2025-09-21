@@ -805,6 +805,16 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
 @media (max-width:640px){
   #produto-in .produto-gallery .g-btn{ width:36px; height:36px; }
 }
+@media (min-width:1024px){
+  #produto-in .produto-gallery{
+    height: auto !important;     /* zera qualquer altura do container */
+    min-height: 0 !important;
+  }
+  #produto-in .produto-gallery .g-viewport{
+    aspect-ratio: 1 / 1 !important;  /* mantém QUADRADO no desktop */
+    height: auto !important;
+  }
+}
 
 
 
