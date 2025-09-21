@@ -733,6 +733,7 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   overflow:hidden;
   background:#000;
   margin:0 0 14px;
+   max-height: 280px;
 }
 
 /* Força quadrado e anula alturas antigas (se houver) */
