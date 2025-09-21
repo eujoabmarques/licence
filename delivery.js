@@ -4,130 +4,109 @@
 
 
 
-/* Galeria do produto com auto-hide de controles
-   - Lê todas as imagens do corpo da postagem (#post-raw) e da primeira imagem (#produto-first)
-   - Cria slides, navegação por setas e dots
-   - Setas (e opcionalmente dots) somem após inatividade
-*/
-(function () {
+
+/*!
+ * Galeria do produto — quadrada 1:1, setas sempre visíveis, auto-hide só nos dots.
+ * Lê imagens de #produto-first e #post-raw.
+ */
+(function(){
   'use strict';
 
-  // Monta os slides dentro da .g-track
-  function buildSlides(root) {
-    const track = root.querySelector('.g-track');
-    if (!track) return false;
-    if (track.querySelector('.g-slide')) return true; // já montado
-
-    // coleta imagens do corpo do post
-    const imgs = [];
-    const raw = document.getElementById('post-raw');
-    if (raw) raw.querySelectorAll('img').forEach(i => i.src && imgs.push(i.src));
-
-    // fallback: primeira imagem
-    const first = document.getElementById('produto-first');
-    if (first && first.src && !imgs.length) imgs.push(first.src);
-
-    if (!imgs.length) return false;
-
-    imgs.forEach(src => {
-      const slide = document.createElement('div');
-      slide.className = 'g-slide';
-      const img = new Image();
-      img.src = src; img.alt = '';
-      slide.appendChild(img);
-      track.appendChild(slide);
-    });
-    return true;
-  }
-
-  function bindGallery(root) {
-    if (!root || root.__bound) return;
-    root.__bound = true;
+  function initGallery(root){
+    if (!root || root.__galleryBound) return;
+    root.__galleryBound = true;
 
     const viewport = root.querySelector('.g-viewport');
     const track    = root.querySelector('.g-track');
     const btnPrev  = root.querySelector('.g-prev');
     const btnNext  = root.querySelector('.g-next');
     const dotsWrap = root.querySelector('.g-dots');
+
     if (!viewport || !track) return;
 
-    let slides = Array.from(root.querySelectorAll('.g-slide'));
-    if (!slides.length) return;
+    // 1) Coleta imagens
+    const urls = [];
+    const first = document.getElementById('produto-first');
+    if (first && first.src) urls.push(first.src);
 
-    // dots
+    const raw = document.getElementById('post-raw');
+    if (raw){
+      raw.querySelectorAll('img').forEach(img=>{
+        const src = (img.getAttribute('data-src') || img.currentSrc || img.src || '').trim();
+        if (src) urls.push(src);
+      });
+    }
+    if (!urls.length){
+      const alt = document.querySelector('#post-raw img, .post img, article img');
+      if (alt && alt.src) urls.push(alt.src);
+    }
+    if (!urls.length) return;
+
+    // 2) Monta slides
+    track.innerHTML = urls.map(src =>
+      `<div class="g-slide"><img src="${src}" loading="lazy" alt=""></div>`
+    ).join('');
+
+    // 3) Dots
     let dots = [];
-    if (dotsWrap) {
-      dotsWrap.innerHTML = slides.map((_, i) =>
-        `<button class="g-dot" aria-label="Ir para ${i + 1}"></button>`
-      ).join('');
+    if (dotsWrap){
+      dotsWrap.innerHTML = urls.map((_,i)=>`<button class="g-dot" aria-label="Ir para ${i+1}"></button>`).join('');
       dots = Array.from(dotsWrap.querySelectorAll('.g-dot'));
     }
 
+    // 4) Navegação
     let idx = 0;
-    function update() {
-      const w = viewport.clientWidth;
-      track.style.transform = `translate3d(${-idx * w}px,0,0)`;
+    function update(){
+      const w = viewport.clientWidth || 1;
+      track.style.transform = `translate3d(${-idx*w}px,0,0)`;
       if (btnPrev) btnPrev.disabled = (idx === 0);
-      if (btnNext) btnNext.disabled = (idx === slides.length - 1);
-      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      if (btnNext) btnNext.disabled = (idx === urls.length - 1);
+      dots.forEach((d,i)=>d.classList.toggle('active', i===idx));
     }
-    function go(i) {
-      idx = Math.max(0, Math.min(slides.length - 1, i | 0));
-      update();
-      wake(); // mantém controles visíveis após navegação
+    function go(i){ idx = Math.max(0, Math.min(urls.length-1, i|0)); update(); }
+    function next(){ go(idx+1); }
+    function prev(){ go(idx-1); }
+
+    btnPrev && btnPrev.addEventListener('click', prev);
+    btnNext && btnNext.addEventListener('click', next);
+    dots.forEach((d,i)=> d.addEventListener('click', ()=>go(i)));
+
+    // 5) Swipe (mobile)
+    let sx=0, dx=0;
+    viewport.addEventListener('touchstart', e=>{ sx=e.touches[0].clientX; dx=0; root.classList.remove('is-idle'); }, {passive:true});
+    viewport.addEventListener('touchmove',  e=>{ dx=e.touches[0].clientX - sx; }, {passive:true});
+    viewport.addEventListener('touchend',   ()=>{ if (Math.abs(dx) > 40) (dx<0?next:prev)(); startIdleTimer(); });
+
+    // 6) Auto-hide (só dots)
+    let idleT=null;
+    function startIdleTimer(){
+      clearTimeout(idleT);
+      root.classList.remove('is-idle');
+      idleT = setTimeout(()=> root.classList.add('is-idle'), 1800);
     }
-
-    btnPrev && btnPrev.addEventListener('click', () => go(idx - 1));
-    btnNext && btnNext.addEventListener('click', () => go(idx + 1));
-    dots.forEach((d, i) => d.addEventListener('click', () => go(i)));
-
-    // swipe mobile
-    let sx = 0, dx = 0;
-    viewport.addEventListener('touchstart', e => { sx = e.touches[0].clientX; dx = 0; wake(); }, { passive: true });
-    viewport.addEventListener('touchmove',  e => { dx = e.touches[0].clientX - sx; }, { passive: true });
-    viewport.addEventListener('touchend',   () => {
-      if (Math.abs(dx) > 40) (dx < 0 ? btnNext?.click() : btnPrev?.click());
+    ['mousemove','mouseenter','keydown','touchstart'].forEach(ev=>{
+      root.addEventListener(ev, startIdleTimer, {passive:true});
     });
+    startIdleTimer();
 
-    // ===== AUTO-HIDE =====
-    let idleTimer = null;
-    const IDLE_MS = 2500; // tempo sem interação até esconder
+    // 7) Mantém alinhado no resize
+    window.addEventListener('resize', update);
 
-    function setIdle(on) {
-      root.classList.toggle('is-idle', !!on);
-    }
-    function wake() {
-      setIdle(false);
-      clearTimeout(idleTimer);
-      idleTimer = setTimeout(() => setIdle(true), IDLE_MS);
-    }
-
-    // Interações que "acordam" os controles
-    root.addEventListener('mousemove', wake, { passive: true });
-    root.addEventListener('mouseenter', wake, { passive: true });
-    root.addEventListener('touchstart', wake, { passive: true });
-    root.addEventListener('keydown', wake);
-    root.addEventListener('mouseleave', () => { clearTimeout(idleTimer); setIdle(true); }, { passive: true });
-
-    // resize mantém posição correta e evita ficar oculto
-    window.addEventListener('resize', () => { update(); wake(); });
-
-    // inicializa
+    // Start
     update();
-    wake();
   }
 
-  function boot() {
-    const root = document.querySelector('#produto-in .produto-gallery');
-    if (!root) return;
-    const ok = buildSlides(root);
-    if (ok) bindGallery(root);
+  function boot(){
+    document.querySelectorAll('#produto-in .produto-gallery').forEach(initGallery);
   }
 
   (document.readyState === 'loading')
     ? document.addEventListener('DOMContentLoaded', boot)
     : boot();
+
 })();
+
+
 
 
 
