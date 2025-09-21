@@ -817,5 +817,130 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   }
 }
 
+/* ===== Header refinado: título forte + descrição elegante ===== */
+
+/* container com sombra suave e mais respiro */
+.header{
+  border: 1px solid #eef0f3;
+  box-shadow: 0 6px 22px rgba(2,6,23,.06);
+  border-radius: 14px;
+  padding: 14px 18px 10px;
+  row-gap: 6px;
+}
+
+/* título mais marcante */
+#Header1 .brandline .brand{
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: .1px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* descrição sob o título com “clamp” em 2 linhas */
+#Header1 .descriptionwrapper{
+  margin: 2px 0 0 58px;            /* não encosta no botão do menu */
+  max-width: min(720px, 70vw);     /* não invade a busca */
+}
+#Header1 .description{
+  margin: 0;
+  color: #6b7280;                  /* var(--muted) */
+  font-size: 14px;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;           /* até 2 linhas */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  padding-left: 10px;
+}
+
+/* filete sutil antes da descrição (detalhe visual) */
+#Header1 .description::before{
+  content:"";
+  position:absolute;
+  left:0; top:.35em;
+  width:3px; height:1.1em;
+  background: color-mix(in srgb, var(--brand) 68%, #fff);
+  border-radius: 2px;
+  opacity:.85;
+}
+
+/* busca alinhada ao topo e com leve recuo da borda do header */
+#BlogSearch1{
+  align-self: start;
+  justify-self: end;
+  margin-top: 2px;
+}
+
+/* separador das abas mais limpo e com espaço melhorado */
+.header .CLOUD-label-widget-content,
+.header .cloud-label-widget-content{
+  margin: 6px -18px -6px;
+  padding: 8px 18px 12px;
+  border-top: 1px solid #eef0f3;
+}
+
+/* botão do menu com sombra leve */
+.menu-btn{
+  box-shadow: 0 6px 18px rgba(2,6,23,.10);
+}
+
+/* — mobile — */
+@media (max-width: 640px){
+  #Header1 .brandline .brand{ font-size: 18px; }
+  #Header1 .descriptionwrapper{
+    margin-left: 52px;
+    max-width: 100%;
+  }
+  #Header1 .description{ font-size: 13px; }
+}
+/*--- Força os widgets do header a participarem do grid ---*/
+.header #Header1,
+.header #BlogSearch1{
+  display: contents; /* os filhos viram itens diretos do grid */
+}
+
+/* Grid do header: brand + desc à esquerda | busca à direita | abas embaixo */
+.header{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "brand  search"
+    "desc   search"
+    "tabs   tabs";
+  row-gap: 6px;
+}
+
+/* Onde cada parte entra */
+.header #Header1 .brandline{ grid-area: brand; }
+.header #Header1 .descriptionwrapper{
+  grid-area: desc;
+  margin-left: 58px;            /* não encostar no botão de menu */
+  max-width: min(720px, 70vw);  /* não invadir a busca */
+}
+.header #Header1 .description{
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+/* Faz a bolha de busca ficar na célula "search" (sem posição fixa) */
+.header .searchfab{
+  grid-area: search;
+  position: static !important;
+}
+
+/* Abas (Label) continuam ocupando a área "tabs" */
+.header .widget.Label{ grid-area: tabs; }
+
+/* Mobile: pequenos ajustes */
+@media (max-width:640px){
+  .header #Header1 .descriptionwrapper{ margin-left: 52px; }
+  .header #Header1 .description{ font-size: 13px; }
+}
+
 
 
