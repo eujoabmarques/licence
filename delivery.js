@@ -1,5 +1,87 @@
 //<![CDATA[
 
+
+// === Alternar layout de posts: List | Card via LinkList6 ===
+(function(){
+  'use strict';
+
+  // Coleta todos os anchors dos LinkList (inclui LinkList6 escondido)
+  function collectAnchors(){
+    const out=[];
+    document.querySelectorAll('[id^="LinkList"] .widget-content a').forEach(a=>{
+      out.push({
+        name:(a.textContent||'').trim(),
+        lower:(a.textContent||'').trim().toLowerCase(),
+        href:(a.getAttribute('href')||'').trim()
+      });
+    });
+    return out;
+  }
+
+  // "Card, List" -> pega o 1º; também entende "Lista"
+  function pickModeFromTokens(s){
+    const t=String(s||'').toLowerCase().split(/[,\|\/\s]+/).filter(Boolean);
+    if(!t.length) return '';
+    if(/card/.test(t[0])) return 'cards';
+    if(/list|lista/.test(t[0])) return 'list';
+    return '';
+  }
+
+  function resolveMode(){
+    const anchors=collectAnchors();
+
+    // A) "Postagens → Card/List"
+    const cfg=anchors.find(a=>/postagens|posts|layout/.test(a.lower));
+    if(cfg){
+      const m1=pickModeFromTokens(cfg.href || cfg.name);
+      if(m1) return m1;
+    }
+    // B) item solto contendo "Card" ou "List"
+    const raw=anchors.find(a=>/(^|[\s,])(card|list|lista)/.test(a.lower));
+    if(raw){
+      const m2=pickModeFromTokens(raw.name || raw.href);
+      if(m2) return m2;
+    }
+    return 'list'; // fallback
+  }
+
+  // Cria um wrapper para os .card (vira grid no CSS)
+  function ensureCardsWrap(){
+    const cards=[...document.querySelectorAll('.card')];
+    if(!cards.length) return;
+
+    // se já estiver embrulhado, ok
+    if(cards[0].parentElement && cards[0].parentElement.classList.contains('cards-wrap')) return;
+
+    // cria contêiner
+    const parent=cards[0].parentElement;
+    const wrap=document.createElement('div');
+    wrap.className='cards-wrap';
+    parent.insertBefore(wrap, cards[0]);
+    cards.forEach(c=>wrap.appendChild(c));
+  }
+
+  function removeCardsWrap(){
+    const wrap=document.querySelector('.cards-wrap');
+    if(!wrap) return;
+    const parent=wrap.parentElement;
+    [...wrap.children].forEach(ch=>parent.insertBefore(ch, wrap));
+    wrap.remove();
+  }
+
+  function apply(mode){
+    const html=document.documentElement;
+    html.classList.toggle('layout-cards', mode==='cards');
+    html.classList.toggle('layout-list',  mode!=='cards');
+    if(mode==='cards') ensureCardsWrap(); else removeCardsWrap();
+  }
+
+  function boot(){ apply(resolveMode()); }
+  (document.readyState==='loading') ? document.addEventListener('DOMContentLoaded', boot) : boot();
+})();
+
+
+
 /* === SearchFab (bind robusto, sem tocar no CSS) =================== */
 (function(){
   // evita bind duplicado (loader, re-dispatch, etc.)
