@@ -635,3 +635,92 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
 .muted{color:var(--muted)}
 .divider{height:1px;background:var(--ring);margin:8px 0}
 .widget-item-control{display:none}
+
+/* =============== MODO CARD =============== */
+/* grid responsivo dos cards */
+.layout-cards .cards-wrap{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(280px,1fr));
+  gap:16px;
+  align-items:stretch;
+}
+
+/* card em coluna, mantendo seu visual de caixa branca */
+.layout-cards .cards-wrap .card{
+  display:flex !important;
+  flex-direction:column !important;
+  margin:0 !important;
+  padding:16px !important;
+  background:var(--paper) !important;
+  border-radius:var(--radius) !important;
+  box-shadow:var(--shadow) !important;
+  overflow:hidden; /* recorta cantos da imagem */
+}
+
+/* título/descrição */
+.layout-cards .cards-wrap .card .title{font-size:16px;margin:2px 0 4px}
+.layout-cards .cards-wrap .card .desc{font-size:13px}
+
+/* imagem EMBAIXO, ocupando toda a largura, todas iguais */
+.layout-cards .cards-wrap .card img{
+  order:10;
+  width:100% !important;
+  aspect-ratio:16/9;      /* troque para 4/3 ou 1/1 se quiser */
+  height:auto;
+  object-fit:cover;
+  border-radius:12px;
+  margin-top:10px;
+}
+
+@media (max-width:640px){
+  .layout-cards .cards-wrap{
+    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    gap:12px;
+  }
+}
+
+/* =============== MODO LISTA =============== */
+/* mantém sua lista em caixa branca (igual já está) e garante consistência */
+.layout-list .card{
+  background:var(--paper) !important;
+  box-shadow:var(--shadow) !important;
+  border-radius:var(--radius) !important;
+  border:0 !important;
+  padding:16px !important;
+  margin-top:14px !important;
+
+  display:grid !important;
+  grid-template-columns: 1fr 140px !important; /* texto | thumb */
+  gap:16px !important;
+  align-items:center !important;
+}
+
+.layout-list .card .title{margin:0 0 6px}
+.layout-list .card .desc{font-size:14px}
+
+/* thumb fixa e igual para todos */
+.layout-list .card img{
+  width:140px !important;
+  height:100px !important;
+  object-fit:cover;
+  border-radius:12px;
+  justify-self:end;
+}
+
+/* sem separadores antigos */
+.layout-list .card + .card{
+  border-top:0 !important;
+  padding-top:0 !important;
+}
+
+/* no mobile, a lista empilha e a imagem vira larga */
+@media (max-width:768px){
+  .layout-list .card{ grid-template-columns:1fr !important; }
+  .layout-list .card img{
+    justify-self:stretch;
+    width:100% !important;
+    height:180px !important;
+  }
+}
+
+
