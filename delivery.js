@@ -1,6 +1,84 @@
 //<![CDATA[
 
 
+
+
+
+/* Galeria do produto - controles sempre visíveis, sem auto-hide */
+(function(){
+  'use strict';
+
+  function makeGallery(root){
+    if (!root || root.__bound) return;
+    root.__bound = true;
+
+    const viewport = root.querySelector('.g-viewport');
+    const track    = root.querySelector('.g-track');
+    const slides   = Array.from(root.querySelectorAll('.g-slide'));
+    const btnPrev  = root.querySelector('.g-btn.prev');
+    const btnNext  = root.querySelector('.g-btn.next');
+    const dotsWrap = root.querySelector('.g-dots');
+
+    if (!viewport || !track || slides.length === 0) return;
+
+    // monta dots se não existir
+    let dots = Array.from(root.querySelectorAll('.g-dot'));
+    if (!dots.length && dotsWrap){
+      dotsWrap.innerHTML = slides.map((_,i)=>`<button class="g-dot" aria-label="Ir para ${i+1}"></button>`).join('');
+      dots = Array.from(root.querySelectorAll('.g-dot'));
+    }
+
+    let idx = 0;
+    function update(){
+      track.style.transform = `translate3d(${-idx*viewport.clientWidth}px,0,0)`;
+      // botões SEMPRE visíveis, só desabilita nos extremos
+      if (btnPrev) btnPrev.disabled = (idx === 0);
+      if (btnNext) btnNext.disabled = (idx === slides.length - 1);
+      if (dots.length){
+        dots.forEach((d,i)=>d.classList.toggle('active', i===idx));
+      }
+    }
+    function go(i){
+      idx = Math.max(0, Math.min(slides.length-1, i|0));
+      update();
+    }
+    function next(){ go(idx+1); }
+    function prev(){ go(idx-1); }
+
+    // binds
+    btnPrev && btnPrev.addEventListener('click', prev);
+    btnNext && btnNext.addEventListener('click', next);
+    dots.forEach((d,i)=>d.addEventListener('click', ()=>go(i)));
+
+    // swipe (mobile)
+    let sx=0, dx=0;
+    viewport.addEventListener('touchstart', e=>{ sx = e.touches[0].clientX; dx = 0; }, {passive:true});
+    viewport.addEventListener('touchmove',  e=>{ dx = e.touches[0].clientX - sx; }, {passive:true});
+    viewport.addEventListener('touchend',   ()=>{ if (Math.abs(dx) > 40) (dx<0?next:prev)(); });
+
+    // resize
+    window.addEventListener('resize', ()=>update());
+    update();
+  }
+
+  // Auto-bind na página do produto
+  function boot(){
+    document.querySelectorAll('#produto-in .produto-gallery').forEach(makeGallery);
+  }
+  (document.readyState === 'loading') ? document.addEventListener('DOMContentLoaded', boot) : boot();
+
+})();
+
+
+
+
+
+
+
+
+
+
+
 // === Alternar layout de posts: List | Card via LinkList6 ===
 (function(){
   'use strict';
