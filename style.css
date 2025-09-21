@@ -856,16 +856,7 @@ textarea{ width:100%; min-height:100px; padding:10px; border:1px solid var(--rin
   padding-left: 10px;
 }
 
-/* filete sutil antes da descrição (detalhe visual) */
-#Header1 .description::before{
-  content:"";
-  position:absolute;
-  left:0; top:.35em;
-  width:3px; height:1.1em;
-  background: color-mix(in srgb, var(--brand) 68%, #fff);
-  border-radius: 2px;
-  opacity:.85;
-}
+
 
 /* busca alinhada ao topo e com leve recuo da borda do header */
 #BlogSearch1{
